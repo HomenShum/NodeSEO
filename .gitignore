@@ -1,6 +1,7 @@
 node_modules/
 artifacts/
-docs/reports/
+docs/reports/*
+!docs/reports/examples/
 .env
 .env.local
 playwright-report/

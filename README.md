@@ -2,6 +2,12 @@
 
 A small, repeatable SEO QA toolkit for proving that a public web surface is crawlable, fast, measurable, and visually credible from search to landing.
 
+Try it with zero API keys — `npm run validate` typechecks and statically audits the bundled `examples/site`:
+
+![Verbatim npm run validate output: typecheck plus static SEO audit of the bundled example site, pass=23 warn=0 fail=0](docs/media/validate-terminal.png)
+
+*Static image by choice — the run prints a dozen lines near-instantly, so an animated replay would be theater. The output block is captured stdout, rendered by `scripts/capture-validate-receipt.mjs`; the SEO_AUDIT receipt that run writes is committed at [`docs/reports/examples/SEO_AUDIT.example.md`](docs/reports/examples/SEO_AUDIT.example.md).*
+
 This repository was extracted from the [NodeRoom](https://noderoom.live/) SEO loop. It intentionally contains only the workflow, not the product app.
 
 Storyboard first: public proof media and SEO claims should follow
