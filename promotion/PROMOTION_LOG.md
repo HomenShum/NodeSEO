@@ -42,8 +42,11 @@ rather than impressions. Nothing was fixed; Wave 1 is a starting line.**
   J2 reached it against a synthetic broken site rather than a real third-party
   build; J5 was not drivable at all for want of Google Search Console and Gemini
   credentials, which this baseline deliberately did not obtain.
-- Scorecard at baseline: see [PRODUCT_GOAL.md](PRODUCT_GOAL.md) — **4/12 PASS**
-  (4, 9, 10, 11), 2 FAIL (2, 5), 6 UNVERIFIED (1, 3, 6, 7, 8, 12).
+- Scorecard at baseline: see [PRODUCT_GOAL.md](PRODUCT_GOAL.md) — first recorded
+  as **4/12 PASS** (4, 9, 10, 11), 2 FAIL (2, 5), 6 UNVERIFIED (1, 3, 6, 7, 8,
+  12). **Corrected 2026-08-13 to 2/12 PASS** (10, 11), 2 FAIL (2, 5), 8
+  UNVERIFIED (1, 3, 4, 6, 7, 8, 9, 12) — rows 4 and 9 rested on probes that were
+  not retained. See "Correction — 2026-08-13" below.
 
 ### Commands run, with real exit codes
 
@@ -68,6 +71,11 @@ rather than impressions. Nothing was fixed; Wave 1 is a starting line.**
   0 console errors; 0 failed requests; `document.styleSheets.length === 0`.
   Captures: `promotion/evidence/example-site-desktop-1280.png`,
   `promotion/evidence/example-site-mobile-375.png`.
+  **Probe not retained** (corrected 2026-08-13): the `capture.mjs` that ran
+  these comparisons was a scratchpad file outside the repo and was never
+  committed, so the PNGs are committed output with no committed producer. The
+  observation stands as something that was seen; it is not reproducible from a
+  clone, which is why conditions 4 and 9 are UNVERIFIED rather than PASS.
 - First `Tab` press focuses the `Create a room` link with a visible default
   outline (`outline-style: auto`). One tab stop, not an accessibility pass.
 - The private-route guard actually fires: loading `/?create=1` in a live browser
@@ -94,6 +102,38 @@ reproduction; a hunch is not a defect.
 | D2 | minor | J1 | The README quickstart puts `npx playwright install chromium` in the install block, ahead of the advertised zero-key command — but `npm run validate` does not need chromium at all. Observed: `npm run validate` exited 0 with `pass=23 warn=0 fail=0` in this clone, and it is `tsc --noEmit` plus a static file scan; only `journey` and `perf` launch a browser. The ordering makes the ten-minute first run look like it starts with a ~150MB browser download that the headline command never uses. (Not observed: what `journey`/`perf` print when chromium is genuinely absent — chromium was installed before either ran.) | open |
 | D3 | minor | J2 | `npm run audit --site-root <path outside the repo>` prints the resolved root as a relative path escaping the repo — observed literally as `siteRoot=../../badsite` in stdout and in the receipt header, instead of the absolute path the user passed. Cosmetic, but the receipt is the deliverable, and a receipt that names a path the reader cannot resolve weakens the one artifact the product exists to produce. Reproduce: `npm run audit -- --config config/seo-workflow.config.example.json --site-root /some/dir/outside/repo`. | open |
 | D4 | minor | J3 | With no environment set, `npm run journey` runs against the `playwright.config.ts` default `baseURL` of `https://example.com` and reports success. Observed from this clone: bare `npm run journey`, no env, exit 0, `1 passed` in 4.3s — a green journey that says nothing about the user's own site, and nothing in the output names the URL that was actually visited. Reproduce: clean clone, `npm run journey`. | open |
+
+## Correction — 2026-08-13
+
+The baseline claimed **4/12 PASS**. It is **2/12 PASS**. No product code changed
+and no measurement was re-run; what changed is which measurements count as
+evidence, under the GATE section "Where evidence lives, and what counts as an
+artifact": an artifact needs the output committed at the path the row names AND
+its producer committed and re-runnable from a fresh clone. Measured but not
+retained is UNVERIFIED.
+
+| Row | Was | Now | Why |
+|---|---|---|---|
+| 4 — no horizontal overflow | PASS | UNVERIFIED | Measured 0 overflow at 375x812 and 1280x800 (`scrollWidth === innerWidth`), probe not retained. The two PNGs are committed and are valid images at exactly those sizes, but the script that compared the widths was a scratchpad file; `grep -rn "scrollWidth\|innerWidth" src tests scripts` finds nothing. Output committed, producer not — half an artifact. |
+| 9 — no console errors or failed requests | PASS | UNVERIFIED | Rested on two partial legs. Leg A (0 console errors AND 0 failed requests in headless chromium) came from the same unretained scratchpad capture. Leg B, `tests/search-origin.spec.ts`, is committed but does not cover the condition: it collects `failedRequests` and **never asserts on them** — the single `expect` is `expect(problems.errors.filter((error) => !isExternalGoogleNoise(error)), problemsSummary(problems)).toEqual([])`, with `failedRequests` used only to build the failure string — so the failed-request half has no committed check, and the error half is asserted only after `isExternalGoogleNoise` drops anything matching google/gstatic/consent/captcha/429. |
+
+Kept, and re-cited precisely rather than restated:
+
+- **Row 10 (performance)** stays PASS and is the shape the gate wants: the
+  receipt `promotion/evidence/performance-qa-local-demo-site.md` is emitted by
+  `renderMarkdown()` in the committed `src/performance-check.ts` (npm target
+  `perf`) and matches that writer line for line — `:129` `# Performance QA
+  Report`, `:131` `Generated:`, `:132` `Base URL:`, `:134` the Playwright-lab
+  blockquote, `:136` the exact 9-column header. Machine-emitted output, committed
+  producer, re-runnable by anyone who clones.
+- **Row 11 (tests and build)** stays PASS: `promotion/evidence/validate-run.txt`
+  is the verbatim stdout of the committed npm targets `validate` and `journey`.
+
+What the next wave has to rebuild, stated so it is not re-derived: a committed
+producer for the overflow check (row 4), and an assertion on `failedRequests`
+in `tests/search-origin.spec.ts` plus a narrower error filter (row 9). Both are
+Wave 2 work; neither was done here, because writing a fresh throwaway probe to
+rescue a PASS is the exact failure this correction exists to record.
 
 ## Iterations
 
