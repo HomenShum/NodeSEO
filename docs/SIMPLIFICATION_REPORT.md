@@ -157,6 +157,76 @@ Full detail in [`docs/codebase/CONCERNS.md`](codebase/CONCERNS.md).
 | **Nothing links a judged video to the capture it came from** | A real gap, but designing provenance for the capture chain is feature work |
 | **The remaining 37 high-sensitivity jscpd "clones"** | Inspected: import statement blocks, `lines.push("")` runs in the Markdown renderers, and the three HTML fixtures sharing boilerplate. All are zero at the default threshold. Extracting a shared Markdown renderer would need a discriminator per report type — the abstraction plus the special cases; see `docs/codebase/ARCHITECTURE.md` |
 
+## Adversarial pass on this wave's own work
+
+Four things this report claims were re-checked by running them, not by reading
+the diff. Each is listed with what would have caught a lie.
+
+### The characterization check was green before the refactor, and its only edit was a rename
+
+`scripts/verify-cli-contract.ts` was written against the **unmodified**
+`src/utils.ts` and ran 20/20 before a line of that module changed. When
+`joinOrAbsolute` was collapsed into `fromRoot`, the only edit to the check was
+the symbol name in two assertions —
+
+```diff
+-  assert.equal(utils.joinOrAbsolute("artifacts/x.mp4"), join(sandbox, "artifacts", "x.mp4"));
++  assert.equal(utils.fromRoot("artifacts/x.mp4"), join(sandbox, "artifacts", "x.mp4"));
+```
+
+— with the expected values untouched. No assertion was loosened and no expected
+value was edited to match new behaviour.
+
+### The new gates were proved able to fail
+
+A check that cannot fail is the exact defect this repository has already shipped
+twice, so both new ones were knocked out deliberately on a fresh clone:
+
+| Knockout | Result |
+|---|---|
+| Swap the `.env` load order to `[".env.local", ".env"]` in `src/utils.ts` | `npm run verify:cli` → **18/20, exit 1**, naming `.env wins over .env.local` and `.env is loaded on import` |
+| Insert three filler lines near the top of `src/utils.ts` | `npm run verify:tours` → **32/34, exit 1**, naming `export function readConfig is on line 77, tour says 74` |
+
+Both returned to green when the file was restored.
+
+### "Behaviour preserved" was diffed, not asserted
+
+The `countBy` → typed-literal change in `src/audit-static.ts` alters when the
+`summary` object's keys are inserted, which is observable in the JSON receipt.
+Checked by running the audit at `ac78174` and at this commit against the same
+site and diffing:
+
+```bash
+git checkout ac78174 -- src/audit-static.ts src/utils.ts
+npm run audit -- --config config/seo-workflow.config.example.json --site-root examples/site --json-out /tmp/before.json
+git checkout HEAD -- src/audit-static.ts src/utils.ts
+npm run audit -- --config config/seo-workflow.config.example.json --site-root examples/site --json-out /tmp/after.json
+diff <(grep -v generatedAt /tmp/before.json) <(grep -v generatedAt /tmp/after.json)
+```
+
+Empty diff. The receipts are identical apart from the timestamp, and `summary`
+serialises `pass, warn, fail` in both.
+
+### The whole packet was re-run from a clone of the pushed commit
+
+Not from the working tree it was built in:
+
+```
+git clone --depth 1 https://github.com/HomenShum/NodeSEO.git && npm install
+npm run validate            exit 0, pass=23 warn=0 fail=0
+npm run verify:cli          20/20
+npm run verify:tours        34/34
+npm run verify:journey-gate 7/7   (after npx playwright install chromium)
+npx knip                    no output
+```
+
+### And one claim in this report was refuted before it was published
+
+The circular-dependency row originally read "0, measured with
+`npx dependency-cruiser --validate`". It printed a green tick. Testing the tool
+against a deliberate cycle showed it never saw `src/` at all — see "The one tool
+that would not run on this stack". The row was rewritten rather than kept.
+
 ## How to reproduce this report
 
 ```bash
