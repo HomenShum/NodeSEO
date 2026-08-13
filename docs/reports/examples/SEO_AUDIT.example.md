@@ -1,6 +1,6 @@
 # SEO Audit
 
-Generated: 2026-08-12T21:55:14.544Z
+Generated: 2026-08-13T18:46:28.863Z
 Base URL: `https://example.com`
 Site root: `examples/site`
 

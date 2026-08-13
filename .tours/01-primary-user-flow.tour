@@ -1,0 +1,97 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "01 — Primary user flow: one command to a receipt",
+  "description": "Follow `npm run validate` from the command a stranger types to the Markdown file they walk away holding. No API keys, no browser, no network. Every step has a `pattern` as well as a `line`, so the tour survives code moving and `npm run verify:tours` fails if the two disagree.",
+  "steps": [
+    {
+      "file": "package.json",
+      "line": 22,
+      "pattern": "\"validate\":",
+      "description": "**Start here.** Someone has shipped a website and cannot tell whether search engines can read it. This is the one command they run first: `npm run validate`. It does two things — typecheck the tool, then audit the bundled demo site in `examples/site` and write a report. Nothing here needs an account, a key, or an internet connection."
+    },
+    {
+      "file": "package.json",
+      "line": 9,
+      "pattern": "\"audit\": \"tsx",
+      "description": "The audit half is this line. There is no server and no framework: `tsx` runs one TypeScript file top to bottom and the process exits. Every one of the seven commands in this repo has exactly this shape, which is why there is no router, no request handler, and no dependency-injection anywhere in the tree."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 33,
+      "pattern": "^const config = readConfig",
+      "description": "The entry point proper. This file has no `main()`; the module body *is* the program. It resolves its settings first (lines 33-45), builds the report, writes it, prints a summary, and sets an exit code. Read those five things in order and you have read the command."
+    },
+    {
+      "file": "src/utils.ts",
+      "line": 74,
+      "pattern": "export function readConfig",
+      "description": "Where untrusted input becomes settings. The user names a JSON file with `--config`; this reads and parses it, and throws with the path if it is missing. Note what it does *not* do — there is no schema validation here. Every field is optional and every reader supplies its own fallback, which is the next step."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 35,
+      "pattern": "^const siteRoot = fromRoot",
+      "description": "The precedence rule, repeated deliberately on lines 34-45 rather than hidden in a helper: **command-line flag, then environment variable, then config file, then a built-in default.** Reading any one of these lines tells you every way a value can arrive. `fromRoot` turns whatever the user typed into an absolute path — relative paths hang off the repo root, absolute paths are left alone."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 47,
+      "pattern": "^const report = buildReport",
+      "description": "One line, and it is the whole domain. Everything above is configuration, everything below is output. If you are adding a new SEO check, this is the call you are extending."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 57,
+      "pattern": "^function buildReport",
+      "description": "The five checks the product actually performs, listed in the order they run: every public page, the root page's social/schema markers, the sitemap, robots.txt, and the private-route guard. Each one appends to a shared `findings` array. Add a sixth check by writing a function that pushes findings and calling it here."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 76,
+      "pattern": "^function auditRoute\\(route",
+      "description": "One page, five facts: does the file exist, does it have a title, a description, a canonical address, and exactly one main heading. The parsing is deliberately regex over raw HTML rather than a DOM library — the input is a static file on disk, and the checks are for the presence of tags, not for their structure."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 202,
+      "pattern": "^function pushRequired",
+      "description": "The scoring rule, in one place. A required check is `pass` or `fail`, never `warn`. `warn` is reserved for the two judgement calls in `auditRoute` — an over-long description and a canonical URL that does not match the base URL — because those are advice, not breakage."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 138,
+      "pattern": "^function auditPrivateRouteGuard",
+      "description": "The one check worth understanding before you change it. A page like `/?room=abc` is a private workspace; the site must tell search engines to skip it. This confirms statically that the page shell carries a `noindex,nofollow` guard. It is opt-in — a site that has no private routes sets `privateNoindexRequired: false` and this check does not run at all."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 49,
+      "pattern": "^if \\(writeDocs\\)",
+      "description": "**The only place this command touches disk.** Two files: machine-readable JSON and human-readable Markdown, both under `docs/reports/`. There is no database, no cache, and no state carried between runs — re-running the command overwrites the pair."
+    },
+    {
+      "file": "src/utils.ts",
+      "line": 92,
+      "pattern": "export function writeJson",
+      "description": "Both writers create their parent directory first, so a fresh clone with no `docs/reports/` works without a setup step. That is the whole persistence layer of this repository."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 54,
+      "pattern": "^console\\.log\\(renderConsole",
+      "description": "How progress reaches the user: it does not. The command prints one five-line summary at the end. There is no streaming, no progress bar, and no spinner, because a static audit of a handful of files finishes in well under a second — see `docs/START_HERE.md`, Step 7."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 55,
+      "pattern": "process\\.exitCode = 1",
+      "description": "The failure contract, and it matters more than the printed text: **any `fail` finding makes the process exit non-zero.** That is what lets `npm run validate` be a CI gate, and it is why `.github/workflows/ci.yml` needs nothing but the command itself."
+    },
+    {
+      "file": "docs/reports/examples/SEO_AUDIT.example.md",
+      "line": 1,
+      "pattern": "^# SEO Audit",
+      "description": "The thing the user walks away holding — a committed copy of a real run against the bundled demo site. Regenerate it with `npm run capture:receipt`, which runs the real `npm run validate`, refuses to continue unless the run reported `fail=0`, copies this receipt, and re-renders the terminal screenshot on the README."
+    }
+  ]
+}

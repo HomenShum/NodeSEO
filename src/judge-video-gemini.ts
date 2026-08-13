@@ -3,7 +3,7 @@ import { basename, extname, join, relative } from "node:path";
 import { generateObject, type ModelMessage } from "ai";
 import { google } from "@ai-sdk/google";
 import { z } from "zod";
-import { hasFlag, joinOrAbsolute, optionValue, ROOT, slash, writeJson, writeText } from "./utils.js";
+import { hasFlag, fromRoot, optionValue, ROOT, slash, writeJson, writeText } from "./utils.js";
 
 const input = optionValue("--input");
 const model = optionValue("--model") ?? process.env.GEMINI_SEO_VIDEO_JUDGE_MODEL ?? "gemini-3.5-flash";
@@ -12,7 +12,7 @@ const dryRun = hasFlag("--dry-run");
 const outDir = optionValue("--out-dir") ?? join(ROOT, "docs", "reports", "gemini-video-judges");
 
 if (!input) throw new Error("Pass --input <video>");
-const inputPath = joinOrAbsolute(input);
+const inputPath = fromRoot(input);
 if (!existsSync(inputPath)) throw new Error(`Video not found: ${input}`);
 if (!dryRun && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is required for Gemini video judging");
 

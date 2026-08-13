@@ -46,9 +46,13 @@ Do not run fake search clicks, ranking scrapes, or bot traffic.
 
 ```bash
 npm install
-npx playwright install chromium
-cp .env.example .env.local
+npx playwright install chromium   # only for `journey`, `perf`, `capture:cdp` — not for `npm run validate`
+cp .env.example .env.local        # only for the credentialed commands
 ```
+
+New to the codebase? Read [`docs/START_HERE.md`](docs/START_HERE.md), which
+walks `npm run validate` from the command you type to the file you walk away
+holding, in the order the code runs.
 
 ## Configure
 

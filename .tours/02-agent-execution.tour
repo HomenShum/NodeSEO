@@ -1,0 +1,55 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "02 — Agent execution: the one place a model is asked anything",
+  "description": "NodeSEO calls a language model in exactly one command: `npm run judge-video`, which shows Gemini a recording of the landing journey and asks for scores. This tour is short on purpose — knowing where the model is *not* used is most of what a new engineer needs.",
+  "steps": [
+    {
+      "file": "package.json",
+      "line": 15,
+      "pattern": "\"judge-video\"",
+      "description": "**The only model call in the repository.** Search the tree for `generateObject`, `generateText`, `google(` or `openai` and this command is the only hit. The static audit, the performance check, the Search Console pull and the browser journey are all deterministic code — no model reads a page, decides a score, or writes a receipt anywhere else."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 17,
+      "pattern": "GOOGLE_GENERATIVE_AI_API_KEY is required",
+      "description": "The trust boundary, checked before anything is sent. Three guards run first: a video path was given, the file exists, and — unless `--dry-run` — an API key is present. Nothing leaves the machine until all three hold. `--dry-run` is the escape hatch a stranger with no key uses to see the output shape."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 19,
+      "pattern": "const schema = z.object",
+      "description": "**This schema is the tool contract.** There is no tool registration and no function calling in this repository — the model is never handed a callable. What constrains it is this Zod object: eight numeric scores bounded 0-10, plus timestamped issues, regressions, and fixes. The AI SDK turns it into the structured-output constraint and rejects a response that does not fit, so a malformed answer is an error rather than a bad receipt."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 43,
+      "pattern": "const result = dryRun",
+      "description": "The whole orchestration, on one line. No planner, no retry loop, no multi-step agent: one branch between the dry run and a single model call. If you are looking for where an agent decides what to do next, it does not exist here, and that is deliberate — see `docs/codebase/ARCHITECTURE.md`."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 57,
+      "pattern": "const response = await generateObject",
+      "description": "The call itself. The video file is attached as bytes in the message, temperature is pinned low at 0.2 for repeatability, and `schema` forces the shape. `response.object` is already parsed and validated by the time it comes back."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 95,
+      "pattern": "^function prompt",
+      "description": "The instructions, kept as plain lines rather than a template file so they are diffable. Two rules do the real work: *judge only what is visible in the video*, and — under `--scenario google-origin` — *do not blame the site for Google's own white background and consent screens*, which is what stopped the judge scoring a normal search-to-site navigation as a broken page."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 72,
+      "pattern": "^function dryResult",
+      "description": "The designed empty state. `--dry-run` returns all-zero scores and a summary that says so in words: \"Dry run; no video was sent to Gemini.\" A reader who finds a receipt full of zeroes can tell at a glance that nobody was asked, rather than concluding the page scored badly."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 44,
+      "pattern": "writeJson\\(join\\(outDir",
+      "description": "Persistence, identical to every other command: a JSON file and a Markdown file, named with a timestamped run id so judgements accumulate instead of overwriting each other. Model output is never merged into another report and never turned into a pass/fail gate — `promotion/PRODUCT_GOAL.md` calls this visual QA, not search-ranking proof."
+    }
+  ]
+}

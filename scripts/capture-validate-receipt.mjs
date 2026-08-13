@@ -18,7 +18,7 @@ import { execSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const IMG = path.join(ROOT, "docs/media/validate-terminal.png");

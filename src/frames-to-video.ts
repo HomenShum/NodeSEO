@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { basename, extname, join, relative } from "node:path";
-import { hasFlag, joinOrAbsolute, numberOption, optionValue, quote, ROOT, slash } from "./utils.js";
+import { hasFlag, fromRoot, numberOption, optionValue, quote, ROOT, slash } from "./utils.js";
 
 const inputDirArg = optionValue("--input-dir");
 const outArg = optionValue("--out");
@@ -9,7 +9,7 @@ const fps = numberOption("--fps", 4, 1, 60);
 const dryRun = hasFlag("--dry-run");
 
 if (!inputDirArg) throw new Error("Pass --input-dir <frame-directory>");
-const inputDir = joinOrAbsolute(inputDirArg);
+const inputDir = fromRoot(inputDirArg);
 if (!existsSync(inputDir) || !statSync(inputDir).isDirectory()) throw new Error(`Frame directory not found: ${inputDirArg}`);
 
 const frames = readdirSync(inputDir)
@@ -17,7 +17,7 @@ const frames = readdirSync(inputDir)
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 if (!frames.length) throw new Error(`No PNG/JPEG frames found in ${inputDirArg}`);
 
-const outputPath = outArg ? joinOrAbsolute(outArg) : join(ROOT, "artifacts", `${basename(inputDir)}.review.mp4`);
+const outputPath = outArg ? fromRoot(outArg) : join(ROOT, "artifacts", `${basename(inputDir)}.review.mp4`);
 const sequenceDir = join(inputDir, ".sequence");
 mkdirSync(sequenceDir, { recursive: true });
 

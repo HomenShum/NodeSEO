@@ -1,10 +1,21 @@
+/**
+ * Everything the seven commands share: how a flag is read, where a path points,
+ * which environment file wins, and how a receipt is written to disk.
+ *
+ * Every command in `src/` is a top-level script, not a library. They import this
+ * module, read their options from it at start-up, do one job, and exit. Its
+ * contract is pinned by `scripts/verify-cli-contract.ts` (`npm run verify:cli`).
+ */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
+/** The directory `npm run …` was invoked from, which is the repo root. */
 export const ROOT = process.cwd();
-export const args = process.argv.slice(2);
 
-export type WorkflowConfig = {
+const args = process.argv.slice(2);
+
+/** The shape of the file passed as `--config`; see `config/seo-workflow.config.example.json`. */
+type WorkflowConfig = {
   baseUrl?: string;
   siteRoot?: string;
   publicDir?: string;
@@ -13,16 +24,20 @@ export type WorkflowConfig = {
   privatePatterns?: string[];
   requiredRootMarkers?: string[];
   privateNoindexRequired?: boolean;
-  journey?: {
-    directPath?: string;
-    primaryHeading?: string;
-    primaryCtaText?: string;
-  };
 };
 
-loadEnvFile(".env");
-loadEnvFile(".env.local");
+// Load `.env` then `.env.local`. A variable already present in the real
+// environment beats both, and `.env` beats `.env.local` because it goes first —
+// so a value passed inline (`SEO_BASE_URL=… npm run audit`) is never silently
+// overwritten by a file. `process.loadEnvFile` applies exactly that precedence;
+// it replaced a hand-rolled parser here, and the two were diffed key-by-key on
+// this repo's own `.env.example` before the swap.
+for (const file of [".env", ".env.local"]) {
+  const path = fromRoot(file);
+  if (existsSync(path)) process.loadEnvFile(path);
+}
 
+/** `--name value` or `--name=value`; undefined when absent or followed by another flag. */
 export function optionValue(name: string): string | undefined {
   const prefix = `${name}=`;
   const inline = args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
@@ -32,6 +47,7 @@ export function optionValue(name: string): string | undefined {
   return index >= 0 && next && !next.startsWith("--") ? next : undefined;
 }
 
+/** Every occurrence of a repeatable option, e.g. `--route / --route /pricing/`. */
 export function optionValues(name: string): string[] {
   const values: string[] = [];
   const prefix = `${name}=`;
@@ -46,6 +62,7 @@ export function hasFlag(name: string): boolean {
   return args.includes(name);
 }
 
+/** A numeric option that refuses a value outside its range instead of clamping it. */
 export function numberOption(name: string, fallback: number, min = 1, max = Number.MAX_SAFE_INTEGER): number {
   const value = optionValue(name);
   if (value === undefined) return fallback;
@@ -57,19 +74,17 @@ export function numberOption(name: string, fallback: number, min = 1, max = Numb
 export function readConfig(): WorkflowConfig {
   const configPath = optionValue("--config") ?? process.env.SEO_WORKFLOW_CONFIG;
   if (!configPath) return {};
-  const path = joinOrAbsolute(configPath);
+  const path = fromRoot(configPath);
   if (!existsSync(path)) throw new Error(`Config not found: ${configPath}`);
   return JSON.parse(readFileSync(path, "utf8")) as WorkflowConfig;
 }
 
-export function joinOrAbsolute(path: string): string {
-  return /^[A-Za-z]:[\\/]/.test(path) || path.startsWith("/") ? path : join(ROOT, path);
-}
-
-export function resolveFromRoot(path: string): string {
+/** Resolve a user-supplied path: an absolute one stays put, a relative one hangs off the repo root. */
+export function fromRoot(path: string): string {
   return resolve(ROOT, path);
 }
 
+/** Receipts are read on every platform, so their paths are always written with forward slashes. */
 export function slash(path: string): string {
   return path.replace(/\\/g, "/");
 }
@@ -84,6 +99,7 @@ export function writeText(path: string, text: string): void {
   writeFileSync(path, text);
 }
 
+/** Keep one finding inside one Markdown table cell: no stray pipes, no wrapped rows. */
 export function escapeMd(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
 }
@@ -92,23 +108,9 @@ export function cell(value: string | undefined): string {
   return value ? escapeMd(value) : "";
 }
 
+/** Print an ffmpeg argument the way a shell would need it, for `--dry-run` output. */
 export function quote(value: string): string {
   return /^[A-Za-z0-9_./:=+-]+$/.test(value) ? value : JSON.stringify(value);
-}
-
-export function loadEnvFile(file: string): void {
-  const path = join(ROOT, file);
-  if (!existsSync(path)) return;
-  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const index = trimmed.indexOf("=");
-    if (index <= 0) continue;
-    const key = trimmed.slice(0, index).trim();
-    const raw = trimmed.slice(index + 1).trim();
-    const value = raw.replace(/^["']|["']$/g, "");
-    if (process.env[key] === undefined) process.env[key] = value;
-  }
 }
 
 export function urlFor(baseUrl: string, route: string): string {

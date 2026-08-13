@@ -1,0 +1,73 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "03 — Debugging, failure, and the checks that prove it",
+  "description": "How this repository fails, how it recovers, and which committed script would go red if the failure handling broke. The centrepiece is a check that was itself broken twice and now has a producer that proves it can fail.",
+  "steps": [
+    {
+      "file": "tests/search-origin.spec.ts",
+      "line": 11,
+      "pattern": "const problems = collectPageProblems",
+      "description": "**The browser journey.** A real Chromium loads the landing page, asserts the headline and call-to-action are visible, and screenshots it. This first line starts listening for trouble *before* the page loads, which is the only ordering that catches an error thrown during startup."
+    },
+    {
+      "file": "tests/search-origin.spec.ts",
+      "line": 37,
+      "pattern": "^function collectPageProblems",
+      "description": "Three channels of trouble, one array each: an uncaught JavaScript error (`pageerror`), a `console.error` (`console`), and a network request that never completed (`requestfailed`). A page can be visually perfect and still be failing on all three."
+    },
+    {
+      "file": "tests/search-origin.spec.ts",
+      "line": 90,
+      "pattern": "^function isExternalSearchOrigin",
+      "description": "**Read the comment above this function before changing anything here.** It is the only thing in the file allowed to discard a problem, and it decides by the *origin of the thing that failed* — never by the words in the message. Two predecessors matched message text and both silently threw away the page's own errors: one dropped anything containing \"google\", the other anything containing \"favicon\". Both are gone."
+    },
+    {
+      "file": "tests/search-origin.spec.ts",
+      "line": 33,
+      "pattern": "expect\\(problems",
+      "description": "The assertion, and the shape matters: it compares the *whole object* against `{ errors: [], failedRequests: [] }`. An earlier version asserted only on `errors` and used `failedRequests` merely to build the failure message — so a page whose every request failed still reported `1 passed`. Both channels, or neither is a check."
+    },
+    {
+      "file": "scripts/verify-journey-problem-gate.mjs",
+      "line": 51,
+      "pattern": "const MUST_NAME_ERROR",
+      "description": "**This is the answer to \"which test proves it?\"** Not the journey — the journey is what is under test. This script runs the real `npm run journey` four times against four real pages it serves itself, and requires the three broken ones to fail *naming their specific problem*. If the suppression above ever regresses to matching message text, the matching run goes green and this script goes red."
+    },
+    {
+      "file": "tests/fixtures/first-party-error/index.html",
+      "line": 18,
+      "pattern": "google analytics bootstrap failed",
+      "description": "One of the three broken pages, and the shape of the original bug in one line: a page served from `127.0.0.1` whose own inline script throws an error whose message happens to contain the word \"google\". Nothing about it is external. The old text filter discarded it."
+    },
+    {
+      "file": "scripts/verify-journey-problem-gate.mjs",
+      "line": 85,
+      "pattern": "^function runJourney",
+      "description": "Worth knowing before you edit this file: the child process is spawned asynchronously on purpose. This same Node process is also the web server the browser is loading from, so a synchronous spawn blocks the event loop and every navigation times out. That was measured, not guessed — the comment records it."
+    },
+    {
+      "file": "scripts/verify-cli-contract.ts",
+      "line": 60,
+      "pattern": "const utils = await import",
+      "description": "The second committed check, covering what the browser journey never reaches: the flag, config, environment, and path rules in `src/utils.ts` that all seven commands inherit. `src/utils.ts` snapshots `process.cwd()` and `process.argv` when it loads, so the check stages both and then imports it dynamically."
+    },
+    {
+      "file": "scripts/verify-cli-contract.ts",
+      "line": 114,
+      "pattern": "beats the .env file",
+      "description": "An example of what a characterization check is for. This pins a rule that is easy to break by accident and impossible to notice: a variable already in your shell wins over `.env`, so `SEO_BASE_URL=… npm run audit` is never silently overridden by a file you forgot you had."
+    },
+    {
+      "file": "src/audit-static.ts",
+      "line": 55,
+      "pattern": "process\\.exitCode = 1",
+      "description": "Recovery, such as it is, for the keyless path: a failed audit sets a non-zero exit code and prints the failing checks with their file paths. Nothing is retried, because nothing here is flaky — the input is files on disk."
+    },
+    {
+      "file": "src/judge-video-gemini.ts",
+      "line": 17,
+      "pattern": "GOOGLE_GENERATIVE_AI_API_KEY is required",
+      "description": "**The known rough edge, deliberately not fixed in this wave.** The three commands that need credentials — `search-console`, `judge-video`, `capture:cdp` — report a missing key by throwing, so Node prints a stack trace with ESM loader frames. The message text is good; the presentation reads as \"the tool is broken\" rather than \"you have not configured this yet\". Tracked as defect D1 in `promotion/PROMOTION_LOG.md`; it is product behaviour, and this wave was structural. See `docs/codebase/CONCERNS.md`."
+    }
+  ]
+}

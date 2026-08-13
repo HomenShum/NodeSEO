@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { cell, escapeMd, hasFlag, optionValue, readConfig, ROOT, slash, urlFor, writeJson, writeText } from "./utils.js";
+import { cell, escapeMd, fromRoot, hasFlag, optionValue, readConfig, ROOT, slash, urlFor, writeJson, writeText } from "./utils.js";
 
 type AuditStatus = "pass" | "warn" | "fail";
 
@@ -32,7 +32,7 @@ type AuditReport = {
 
 const config = readConfig();
 const baseUrl = (optionValue("--base-url") ?? process.env.SEO_BASE_URL ?? config.baseUrl ?? "https://example.com").replace(/\/$/, "");
-const siteRoot = joinOrRoot(optionValue("--site-root") ?? config.siteRoot ?? ".");
+const siteRoot = fromRoot(optionValue("--site-root") ?? config.siteRoot ?? ".");
 const publicDir = config.publicDir ?? "public";
 const rootHtml = config.rootHtml ?? "index.html";
 const publicRoutes = optionValue("--routes")
@@ -61,13 +61,13 @@ function buildReport(): AuditReport {
   auditSitemap(routes, findings);
   auditRobots(findings);
   auditPrivateRouteGuard(findings);
-  const summary = countBy(findings, (finding) => finding.status);
-  for (const status of ["pass", "warn", "fail"] as const) summary[status] ??= 0;
+  const summary: Record<AuditStatus, number> = { pass: 0, warn: 0, fail: 0 };
+  for (const finding of findings) summary[finding.status]++;
   return {
     generatedAt: new Date().toISOString(),
     baseUrl,
     siteRoot: slash(relative(ROOT, siteRoot)) || ".",
-    summary: summary as Record<AuditStatus, number>,
+    summary,
     routes,
     findings,
   };
@@ -208,28 +208,16 @@ function textTag(html: string, tag: string): string | undefined {
   return match?.[1]?.replace(/\s+/g, " ").trim();
 }
 
+// `name` and `rel` are literals at both call sites ("description", "canonical"),
+// so they are interpolated as-is; no user input reaches these patterns.
 function metaContent(html: string, name: string): string | undefined {
-  const match = html.match(new RegExp(`<meta\\s+[^>]*name=["']${escapeRegex(name)}["'][^>]*content=["']([^"']+)["'][^>]*>`, "i"))
-    ?? html.match(new RegExp(`<meta\\s+[^>]*content=["']([^"']+)["'][^>]*name=["']${escapeRegex(name)}["'][^>]*>`, "i"));
+  const match = html.match(new RegExp(`<meta\\s+[^>]*name=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`, "i"))
+    ?? html.match(new RegExp(`<meta\\s+[^>]*content=["']([^"']+)["'][^>]*name=["']${name}["'][^>]*>`, "i"));
   return match?.[1]?.trim();
 }
 
 function linkHref(html: string, rel: string): string | undefined {
-  const match = html.match(new RegExp(`<link\\s+[^>]*rel=["']${escapeRegex(rel)}["'][^>]*href=["']([^"']+)["'][^>]*>`, "i"))
-    ?? html.match(new RegExp(`<link\\s+[^>]*href=["']([^"']+)["'][^>]*rel=["']${escapeRegex(rel)}["'][^>]*>`, "i"));
+  const match = html.match(new RegExp(`<link\\s+[^>]*rel=["']${rel}["'][^>]*href=["']([^"']+)["'][^>]*>`, "i"))
+    ?? html.match(new RegExp(`<link\\s+[^>]*href=["']([^"']+)["'][^>]*rel=["']${rel}["'][^>]*>`, "i"));
   return match?.[1]?.trim();
-}
-
-function countBy<T>(items: T[], keyFn: (item: T) => string): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const item of items) out[keyFn(item)] = (out[keyFn(item)] ?? 0) + 1;
-  return out;
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function joinOrRoot(path: string): string {
-  return /^[A-Za-z]:[\\/]/.test(path) || path.startsWith("/") ? path : join(ROOT, path);
 }

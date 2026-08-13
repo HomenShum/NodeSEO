@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { basename, dirname, extname, join, relative } from "node:path";
-import { hasFlag, joinOrAbsolute, optionValue, quote, ROOT, slash } from "./utils.js";
+import { hasFlag, fromRoot, optionValue, quote, ROOT, slash } from "./utils.js";
 
 const input = optionValue("--input");
 const mode = optionValue("--mode") ?? "readable";
@@ -11,11 +11,11 @@ const dryRun = hasFlag("--dry-run");
 if (!input) throw new Error("Pass --input <video>");
 if (!["readable", "review"].includes(mode)) throw new Error("--mode must be readable or review");
 
-const inputPath = joinOrAbsolute(input);
+const inputPath = fromRoot(input);
 if (!existsSync(inputPath)) throw new Error(`Input video not found: ${input}`);
 
 const suffix = mode === "review" ? "review" : "720p";
-const outputPath = outArg ? joinOrAbsolute(outArg) : join(ROOT, "artifacts", `${basename(inputPath, extname(inputPath))}.${suffix}.mp4`);
+const outputPath = outArg ? fromRoot(outArg) : join(ROOT, "artifacts", `${basename(inputPath, extname(inputPath))}.${suffix}.mp4`);
 mkdirSync(dirname(outputPath), { recursive: true });
 
 const vf = mode === "review" ? "fps=6,scale='min(960,iw)':-2" : "fps=15,scale='min(1280,iw)':-2";

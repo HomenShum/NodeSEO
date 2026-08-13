@@ -1,4 +1,4 @@
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type Page } from "@playwright/test";
 import { join, relative } from "node:path";
 import { escapeMd, optionValue, optionValues, readConfig, ROOT, slash, urlFor, writeJson, writeText } from "./utils.js";
 

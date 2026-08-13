@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join, relative } from "node:path";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "@playwright/test";
 import { numberOption, optionValue, readConfig, ROOT, slash, writeJson } from "./utils.js";
 
 const config = readConfig();
