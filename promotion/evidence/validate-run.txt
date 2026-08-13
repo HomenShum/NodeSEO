@@ -1,0 +1,21 @@
+$ npm run validate    # NodeSEO promotion baseline, 2026-08-13T09:09:40Z, node v22.22.2, no API keys set
+
+
+> nodeseo@0.1.0 validate
+> npm run typecheck && npm run audit -- --config config/seo-workflow.config.example.json --site-root examples/site
+
+
+> nodeseo@0.1.0 typecheck
+> tsc --noEmit
+
+
+> nodeseo@0.1.0 audit
+> tsx src/audit-static.ts --config config/seo-workflow.config.example.json --site-root examples/site
+
+SEO audit 2026-08-13T09:09:46.475Z
+baseUrl=https://example.com
+siteRoot=examples/site
+pass=23 warn=0 fail=0
+wrote=docs/reports/seo-audit.latest.json, docs/reports/SEO_AUDIT.md
+
+exit=0
