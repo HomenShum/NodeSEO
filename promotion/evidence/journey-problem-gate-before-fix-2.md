@@ -1,6 +1,6 @@
 # Journey problem-gate proof
 
-Generated: 2026-08-13T13:11:21.345Z
+Generated: 2026-08-13T13:10:08.562Z
 Producer: `node scripts/verify-journey-problem-gate.mjs` (node v22.22.2)
 Under test: `npm run journey` -> `tests/search-origin.spec.ts`, chromium, base URL `http://127.0.0.1:4403`
 
@@ -19,10 +19,10 @@ Under test: `npm run journey` -> `tests/search-origin.spec.ts`, chromium, base U
 | first-party-error run names the error (google analytics bootstrap failed) | pass |
 | failed-request fixture exits non-zero | pass |
 | failed-request run names the request (/never-responds) | pass |
-| first-party-console-error fixture exits non-zero | pass |
-| first-party-console-error run names the error (favicon pipeline exploded) | pass |
+| first-party-console-error fixture exits non-zero | FAIL |
+| first-party-console-error run names the error (favicon pipeline exploded) | FAIL |
 
-Overall: **pass**
+Overall: **FAIL**
 
 ## Run 1 — `examples/site` (healthy), expected exit 0, got 0
 
@@ -34,9 +34,9 @@ Overall: **pass**
 
 Running 1 test using 1 worker
 
-  ok 1 [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing (407ms)
+  ok 1 [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing (406ms)
 
-  1 passed (1.5s)
+  1 passed (1.3s)
 ```
 
 Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
@@ -101,32 +101,17 @@ Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
         at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\siblings\NodeSEO\repo\tests\search-origin.spec.ts:33:49
 ```
 
-## Run 4 — `tests/fixtures/first-party-console-error` (inline `console.error` whose message contains "favicon"), expected exit 1, got 1
+## Run 4 — `tests/fixtures/first-party-console-error` (inline `console.error` whose message contains "favicon"), expected exit 1, got 0
 
 ```
-  1) [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing 
 
-    Error: favicon pipeline exploded while rendering the page
+> nodeseo@0.1.0 journey
+> playwright test
 
-    expect(received).toEqual(expected) // deep equality
 
-    - Expected  - 1
-    + Received  + 3
+Running 1 test using 1 worker
 
-      Object {
-    -   "errors": Array [],
-    +   "errors": Array [
-    +     "favicon pipeline exploded while rendering the page",
-    +   ],
-        "failedRequests": Array [],
-      }
+  ok 1 [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing (363ms)
 
-      31 |     // Both channels, or neither is a check: `failedRequests` was collected and
-      32 |     // never asserted on, so a page whose requests all failed still passed.
-    > 33 |     expect(problems, problemsSummary(problems)).toEqual({ errors: [], failedRequests: [] });
-         |                                                 ^
-      34 |   });
-      35 | });
-      36 |
-        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\siblings\NodeSEO\repo\tests\search-origin.spec.ts:33:49
+  1 passed (1.3s)
 ```

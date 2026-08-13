@@ -208,3 +208,73 @@ rescue a PASS is the exact failure this correction exists to record.
 
 **Not fixed this iteration, still open:** D1 (raw Node stack traces on the
 unconfigured path), D2, D3, D4 — see the ledger above.
+
+### Iteration 2 — 2026-08-13
+
+- **Journey exercised:** J3 — same journey as iteration 1
+  (`npm run journey` → `tests/search-origin.spec.ts`).
+- **Observed:** iteration 1 fixed one text filter and left its sibling running
+  three lines below. The entry above asserts that `isIgnoredProblem`
+  "is a narrow allowlist, not a text filter over first-party errors". That was
+  read, not run, and it is false: `:47` called
+  `isIgnoredProblem(message.text())` — the MESSAGE TEXT, not a URL — against
+  `/fonts\.googleapis\.com|fonts\.gstatic\.com|favicon|ResizeObserver loop/i`.
+  Reproduced on the post-iteration-1 tree with the same kind of probe that
+  caught the first one: a page served from `127.0.0.1` with an inline script,
+  nothing external, whose only statement is
+  `console.error("favicon pipeline exploded while rendering the page")`.
+  `npm run journey` reported `1 passed`, exit 0. A first-party error, silently
+  discarded for one WORD in its message. Same suppression class as the
+  `/google/` filter, narrower vocabulary, so lower severity — "favicon" is a
+  rarer word in a first-party error than "google" is in an SEO tool — and the
+  `pageerror` channel never routed through it. Still the same defect.
+  Before-state receipt: `promotion/evidence/journey-problem-gate-before-fix-2.md`
+  (5 of 7 checks pass, the 2 new ones FAIL), produced by the committed script
+  below against the spec as of `42a51a7`. Regenerate it with
+  `git stash push -- tests/search-origin.spec.ts && npm run verify:journey-gate`,
+  then `git stash pop` — which is how the failing-before state was confirmed
+  rather than assumed.
+- **Fixed:** `tests/search-origin.spec.ts`, at the same seam iteration 1 chose
+  and by deletion rather than a third branch:
+  - `isIgnoredProblem` and both its call sites are gone. `isExternalSearchOrigin`
+    is now the only suppression in the file, and it reads the URL of the thing
+    that failed, never the words in a message.
+  - Nothing replaced the four patterns, and each was checked rather than
+    assumed. `fonts.gstatic.com` already matches `isExternalSearchOrigin` as an
+    origin (the `(^|\.)gstatic\.com$` arm). `fonts.googleapis.com` failing on the
+    user's own page is the user's problem, which this gate exists to report, so
+    it is deliberately no longer suppressed. `ResizeObserver loop` arrives on
+    `pageerror`, which never consulted the text filter, so nothing changed for
+    it. `favicon` was the defect itself. Measured before deleting: on the
+    healthy demo site headless chromium emits **no** console message and issues
+    exactly one request (`GET /`) — it never asks for `/favicon.ico` — so the
+    favicon pattern was suppressing nothing the demo surface produces, and its
+    removal does not turn the healthy run red. Confirmed by run 1 below.
+  - No new dependency, no new abstraction, no redesign. Net effect on the spec
+    is one predicate and two conditions removed.
+- **Re-proved:** `promotion/evidence/journey-problem-gate.md` — now **7 of 7**
+  checks pass across four real chromium runs of the real npm target. Run 4 is
+  new: `tests/fixtures/first-party-console-error` exits 1 naming
+  `"favicon pipeline exploded while rendering the page"`. Runs 1–3 are
+  unchanged and still pass, so iteration 1's fix is intact. Producer:
+  `npm run verify:journey-gate` → `scripts/verify-journey-problem-gate.mjs`,
+  extended with the fourth fixture and its two checks, plus a
+  `JOURNEY_GATE_PORT` override for when 4313 is taken (this run used 4403).
+- **Tests:** `npm run typecheck` exit 0. `npm run validate` exit 0,
+  `pass=23 warn=0 fail=0`. `npm run journey` bare (no env, real network, the
+  `https://example.com` default) exit 0, `1 passed` — dropping the filter does
+  not make a real external site go red. `npm run verify:journey-gate` exit 0
+  (7/7) on the fixed tree; exit 1 (5/7) on the pre-fix tree, confirmed by
+  stashing **only** `tests/search-origin.spec.ts` — the new fixture and the new
+  checks stayed in place — re-running, and restoring. The regression check is
+  therefore known to fail before the fix rather than assumed to.
+- **Conditions newly PASS:** none. Row 9 was already PASS and stays PASS; what
+  changed is that its stated reason is now true. Its wording in
+  [PRODUCT_GOAL.md](PRODUCT_GOAL.md) — "never by matching words in the
+  message" — was false when written, and is what this iteration made true.
+  Row 12's scope sentence was widened to cover both improvements. Claiming a
+  new condition for correcting one's own false claim would be the same failure
+  in a different place.
+
+**Not fixed this iteration, still open:** D1, D2, D3, D4 — untouched, see the
+ledger above.

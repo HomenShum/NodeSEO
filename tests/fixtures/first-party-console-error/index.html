@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>First-party console error fixture</title>
+  </head>
+  <body>
+    <!-- The heading exists on purpose: the run must reach the problem
+         assertion and fail THERE, not fail earlier for a missing h1. -->
+    <h1>First-party console error fixture</h1>
+    <p>Isolates the sibling of the 2026-08-13 defect: the site's own console error, dropped for a WORD in its message.</p>
+    <script>
+      // Nothing here is external. The page is served from 127.0.0.1, the script
+      // is inline, so `message.location().url` is this document. The word
+      // "favicon" in the message is the whole point: `isIgnoredProblem` matched
+      // the message TEXT against /fonts\.googleapis\.com|fonts\.gstatic\.com|
+      // favicon|ResizeObserver loop/i, so this reported "1 passed" — the same
+      // suppression class as the /google/ filter, three lines below it.
+      console.error("favicon pipeline exploded while rendering the page");
+    </script>
+  </body>
+</html>

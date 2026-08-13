@@ -44,11 +44,11 @@ function collectPageProblems(page: Page): { errors: string[]; failedRequests: st
     // location().url is the resource the message came from — the failing
     // subresource for browser-generated messages, the script for console.error.
     const origin = message.location().url || page.url();
-    if (message.type() === "error" && !isIgnoredProblem(message.text()) && !isExternalSearchOrigin(origin)) errors.push(message.text());
+    if (message.type() === "error" && !isExternalSearchOrigin(origin)) errors.push(message.text());
   });
   page.on("requestfailed", (request) => {
     const url = request.url();
-    if (isIgnoredProblem(url) || isExternalSearchOrigin(url)) return;
+    if (isExternalSearchOrigin(url)) return;
     failedRequests.push(`${request.method()} ${url}: ${request.failure()?.errorText ?? "unknown"}`);
   });
   return { errors, failedRequests };
@@ -64,22 +64,28 @@ function problemsSummary(problems: { errors: string[]; failedRequests: string[] 
   return [...problems.errors, ...problems.failedRequests].join("\n");
 }
 
-function isIgnoredProblem(value: string): boolean {
-  return /fonts\.googleapis\.com|fonts\.gstatic\.com|favicon|ResizeObserver loop/i.test(value);
-}
-
 /**
  * The only reason a problem is dropped as someone else's: it came from Google's
  * own search stack, which this spec drives through in the SEO_ALLOW_LIVE_GOOGLE
- * branch and does not own.
+ * branch and does not own. This is the ONLY suppression in this file — there is
+ * no second predicate, and nothing is decided by reading a message.
  *
  * Decided by the ORIGIN of the thing that failed, never by the words in the
- * message. Its predecessor tested the message text against
- * /google|gstatic|consent|captcha|status of 429/, so a first-party
- * `Error("google analytics bootstrap failed")` thrown by the user's own page
- * was silently discarded — see tests/fixtures/first-party-error. Origin-based,
- * this filter is inert on the default keyless run, which never loads a Google
- * URL at all.
+ * message. Two predecessors tested text and both discarded first-party errors:
+ * `isExternalGoogleNoise` matched the message against
+ * /google|gstatic|consent|captcha|status of 429/, dropping a page's own
+ * `Error("google analytics bootstrap failed")` (tests/fixtures/first-party-error);
+ * `isIgnoredProblem` matched it against
+ * /fonts\.googleapis\.com|fonts\.gstatic\.com|favicon|ResizeObserver loop/,
+ * dropping the page's own `console.error("favicon pipeline exploded …")`
+ * (tests/fixtures/first-party-console-error). Both are gone. Nothing replaced
+ * the font hosts: `fonts.gstatic.com` still matches below as an origin, and
+ * `fonts.googleapis.com` failing on the user's own page is the user's problem,
+ * which this gate exists to report. `ResizeObserver loop` arrives on
+ * `pageerror`, which never consulted the text filter anyway.
+ *
+ * Origin-based, this filter is inert on the default keyless run, which never
+ * loads a Google URL at all.
  */
 function isExternalSearchOrigin(url: string): boolean {
   try {

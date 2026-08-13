@@ -5,25 +5,30 @@
  *
  * Why this script exists: `tests/search-origin.spec.ts` used to collect
  * `failedRequests` and never assert on them, and it filtered console errors by
- * matching the message TEXT against /google|gstatic|consent|captcha|429/ -- so a
- * first-party error that merely mentioned Google was dropped too. Between them
- * that is a check that cannot fail, and nothing in the repo demonstrated the
- * difference. This does, in three real runs of the real npm target against
- * three real pages:
+ * matching the message TEXT -- twice, with two predicates. The first,
+ * /google|gstatic|consent|captcha|429/, dropped a first-party error that merely
+ * mentioned Google. The second, /fonts\.googleapis\.com|fonts\.gstatic\.com|
+ * favicon|ResizeObserver loop/, survived that fix three lines below it and
+ * dropped a first-party console error that merely contained "favicon". Between
+ * them that is a check that cannot fail, and nothing in the repo demonstrated
+ * the difference. This does, in four real runs of the real npm target against
+ * four real pages:
  *
- *   healthy         examples/site                      -> exit 0
- *   first-party-err tests/fixtures/first-party-error    -> exit 1, names the error
- *   failed-request  tests/fixtures/failed-request       -> exit 1, names the request
+ *   healthy         examples/site                        -> exit 0
+ *   first-party-err tests/fixtures/first-party-error      -> exit 1, names the error
+ *   failed-request  tests/fixtures/failed-request         -> exit 1, names the request
+ *   console-error   tests/fixtures/first-party-console-error -> exit 1, names the error
  *
- * The two broken fixtures are deliberately NOT combined into one page. A
- * refused subresource also prints "Failed to load resource" to the console, so
- * a combined fixture fails through the error channel and proves nothing about
+ * The broken fixtures are deliberately NOT combined into one page. A refused
+ * subresource also prints "Failed to load resource" to the console, so a
+ * combined fixture fails through the error channel and proves nothing about
  * the request channel -- measured on the pre-fix tree, which failed such a
- * fixture for the wrong reason. Each fixture therefore trips exactly one half.
+ * fixture for the wrong reason. Each fixture therefore trips exactly one thing.
  *
- * All three pages are served by the throwaway static server below on
- * 127.0.0.1:4313, so this runs from a fresh clone with no network, no keys and
- * no extra dependencies.
+ * All four pages are served by the throwaway static server below on
+ * 127.0.0.1:4313 (override with JOURNEY_GATE_PORT when that port is taken), so
+ * this runs from a fresh clone with no network, no keys and no extra
+ * dependencies.
  *
  * Run: node scripts/verify-journey-problem-gate.mjs
  */
@@ -34,16 +39,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PORT = 4313;
+const PORT = Number(process.env.JOURNEY_GATE_PORT ?? 4313);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const EVIDENCE = path.join(ROOT, "promotion/evidence/journey-problem-gate.md");
 const LANDING_SHOT = path.join(ROOT, "promotion/evidence/journey-direct-landing.png");
 
 // The strings each broken run must surface. If the gate regresses to
-// "collected but not asserted", or back to a text-based Google filter, the
-// matching run goes green and this script fails.
+// "collected but not asserted", or back to a text filter over first-party
+// messages -- of either vocabulary -- the matching run goes green and this
+// script fails.
 const MUST_NAME_ERROR = "google analytics bootstrap failed";
 const MUST_NAME_REQUEST = "/never-responds";
+const MUST_NAME_CONSOLE_ERROR = "favicon pipeline exploded";
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -143,12 +150,17 @@ const firstPartyError = await journeyAgainst("tests/fixtures/first-party-error")
 // --- run 3: failed request with no console message at all ----------------
 const failedRequest = await journeyAgainst("tests/fixtures/failed-request");
 
+// --- run 4: first-party console.error whose text contains "favicon" ------
+const consoleError = await journeyAgainst("tests/fixtures/first-party-console-error");
+
 const checks = [
   ["healthy demo site exits 0", healthy.status === 0],
   ["first-party-error fixture exits non-zero", firstPartyError.status !== 0],
   [`first-party-error run names the error (${MUST_NAME_ERROR})`, firstPartyError.output.includes(MUST_NAME_ERROR)],
   ["failed-request fixture exits non-zero", failedRequest.status !== 0],
   [`failed-request run names the request (${MUST_NAME_REQUEST})`, failedRequest.output.includes(MUST_NAME_REQUEST)],
+  ["first-party-console-error fixture exits non-zero", consoleError.status !== 0],
+  [`first-party-console-error run names the error (${MUST_NAME_CONSOLE_ERROR})`, consoleError.output.includes(MUST_NAME_CONSOLE_ERROR)],
 ];
 const ok = checks.every(([, passed]) => passed);
 
@@ -165,10 +177,13 @@ Generated: ${new Date().toISOString()}
 Producer: \`node scripts/verify-journey-problem-gate.mjs\` (node ${process.version})
 Under test: \`npm run journey\` -> \`tests/search-origin.spec.ts\`, chromium, base URL \`${BASE_URL}\`
 
-> Three real runs of the real npm target against three real pages served
-> locally. The point is runs 2 and 3: before 2026-08-13 the spec dropped any
-> console error whose text matched /google/ and never asserted on failed
-> requests at all, so both broken fixtures below also reported \`1 passed\`.
+> Four real runs of the real npm target against four real pages served
+> locally. The point is runs 2, 3 and 4: the spec used to drop any console
+> error whose text matched /google/ (fixed 2026-08-13, iteration 1), never
+> assert on failed requests at all (same fix), and drop any console error whose
+> text matched /favicon|fonts\\.googleapis\\.com|ResizeObserver loop/ (a second
+> text filter three lines below the first, fixed in iteration 2). Each broken
+> fixture below reported \`1 passed\` under the filter that covered it.
 
 | Check | Result |
 |---|---|
@@ -180,7 +195,8 @@ ${section("Run 1 — `examples/site` (healthy)", { result: healthy, expected: 0 
 Landing capture kept at \`promotion/evidence/journey-direct-landing.png\`${shot ? "" : " (not refreshed this run: no attachment found)"}.
 
 ${section("Run 2 — `tests/fixtures/first-party-error` (inline `throw new Error` whose message contains \"google\")", { result: firstPartyError, expected: 1 })}
-${section("Run 3 — `tests/fixtures/failed-request` (aborted fetch: a failed request Chrome logs nothing about)", { result: failedRequest, expected: 1 })}`;
+${section("Run 3 — `tests/fixtures/failed-request` (aborted fetch: a failed request Chrome logs nothing about)", { result: failedRequest, expected: 1 })}
+${section("Run 4 — `tests/fixtures/first-party-console-error` (inline `console.error` whose message contains \"favicon\")", { result: consoleError, expected: 1 })}`;
 
 await fs.mkdir(path.dirname(EVIDENCE), { recursive: true });
 await fs.writeFile(EVIDENCE, md);

@@ -98,7 +98,10 @@ Each journey states, in this order:
   serving the site on `127.0.0.1:4313`), which also proves the run's
   console-error and failed-request gate can fail —
   `promotion/evidence/journey-problem-gate.md`. Before that it could not: two
-  deliberately broken pages both reported `1 passed`.
+  deliberately broken pages both reported `1 passed`. Iteration 2 added a third
+  broken page (`tests/fixtures/first-party-console-error`), which still reported
+  `1 passed` after iteration 1 because a second message-text filter survived it;
+  the gate now runs four pages and 7 checks.
 
 ## J4 — "Tell me whether the page is fast enough to bother a visitor"
 
