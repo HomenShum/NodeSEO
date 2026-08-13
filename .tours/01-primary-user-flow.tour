@@ -1,7 +1,7 @@
 {
   "$schema": "https://aka.ms/codetour-schema",
   "title": "01 — Primary user flow: one command to a receipt",
-  "description": "Follow `npm run validate` from the command a stranger types to the Markdown file they walk away holding. No API keys, no browser, no network. Every step has a `pattern` as well as a `line`, so the tour survives code moving and `npm run verify:tours` fails if the two disagree.",
+  "description": "Follow `npm run validate` from the command a stranger types to the Markdown file they walk away holding. No API keys, no browser, no network. Every step has a `pattern` as well as a `line`, so the tour survives code moving and `npm run verify:citations` fails if the two disagree.",
   "steps": [
     {
       "file": "package.json",

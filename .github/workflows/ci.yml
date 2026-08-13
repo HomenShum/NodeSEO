@@ -16,7 +16,7 @@ jobs:
       - run: npm ci
       - run: npm run validate
       # The shared flag/config/env/path rules every command inherits. No browser,
-      # no keys, ~1s. `verify:journey-gate` is deliberately NOT here — it needs a
+      # no keys, ~6s. `verify:journey-gate` is deliberately NOT here — it needs a
       # chromium download; see docs/codebase/CONCERNS.md.
       - run: npm run verify:cli
       - run: npm run verify:citations
