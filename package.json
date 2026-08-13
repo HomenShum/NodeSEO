@@ -14,6 +14,7 @@
     "compress-video": "tsx src/compress-video.ts",
     "judge-video": "tsx src/judge-video-gemini.ts",
     "journey": "playwright test",
+    "verify:journey-gate": "node scripts/verify-journey-problem-gate.mjs",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run audit -- --config config/seo-workflow.config.example.json --site-root examples/site"
   },

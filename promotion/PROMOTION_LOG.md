@@ -137,4 +137,74 @@ rescue a PASS is the exact failure this correction exists to record.
 
 ## Iterations
 
-_none yet — Wave 1 is baseline only._
+### Iteration 1 — 2026-08-13
+
+- **Journey exercised:** J3 — "Prove in a real browser that the landing page
+  actually works" (`npm run journey` → `tests/search-origin.spec.ts`).
+- **Observed:** the journey's only quality gate could not fail. With **zero
+  changes to tracked files** (`git diff --stat` empty), `npm run journey` was
+  pointed at two deliberately broken pages served on `127.0.0.1:4313` and
+  reported `1 passed`, exit 0, for both:
+  - `tests/fixtures/first-party-error/index.html` — an inline
+    `throw new Error("google analytics bootstrap failed on this page")`. The
+    page is served from 127.0.0.1 and the script is inline; nothing about it is
+    external. It was dropped because `isExternalGoogleNoise` tested the message
+    **text** against `/google|gstatic|consent|captcha|status of 429/`.
+  - `tests/fixtures/failed-request/index.html` — a `fetch()` aborted mid-flight,
+    which Chrome logs nothing about. It was dropped because `failedRequests` was
+    collected (`page.on("requestfailed", …)`) and **never asserted on**; the
+    single `expect` covered `errors` only, and `failedRequests` was used solely
+    to build the failure message, which is what made the gap look covered.
+  The two fixtures are separate on purpose. A combined page fails for the wrong
+  reason: a refused subresource also prints `Failed to load resource:
+  net::ERR_CONNECTION_REFUSED` to the console, and that message survives both
+  filters — measured on the pre-fix tree, where a combined fixture went red
+  through the error channel while proving nothing about the request channel.
+  Before-state receipt: `promotion/evidence/journey-problem-gate-before-fix.md`
+  (4 of 5 checks FAIL), produced by the same committed script below against the
+  spec as of `80df4f2`. Regenerate it with
+  `git checkout 80df4f2 -- tests/search-origin.spec.ts && npm run
+  verify:journey-gate`, then restore the file.
+- **Fixed:** `tests/search-origin.spec.ts`, at the root rather than at the two
+  symptoms — one predicate is shared by all three collectors, so fixing it once
+  fixes every channel:
+  - `:33` asserts the whole object: `expect(problems, problemsSummary(problems))
+    .toEqual({ errors: [], failedRequests: [] })`. Both channels, or neither is
+    a check.
+  - `isExternalGoogleNoise` → `isExternalSearchOrigin`, which parses the URL of
+    **the thing that failed** and matches its hostname, instead of grepping the
+    message text. A problem is now discarded only when it came from Google's own
+    search stack — the one origin this spec drives through and does not own.
+    Applied at collection time in all three handlers (`pageerror` uses
+    `page.url()`, `console` uses `message.location().url`, `requestfailed` uses
+    `request.url()`), so the failure message reports exactly what is asserted.
+    On the default keyless run the filter is inert: no Google URL is ever
+    loaded. No other file references it — `grep -rn "Noise\|isIgnored"
+    src tests scripts` matched only this spec, so there were no sibling callers
+    to fix.
+  - No new dependency, no new abstraction, no redesign. `isIgnoredProblem`
+    (fonts / favicon / ResizeObserver) is untouched: it is a narrow allowlist,
+    not a text filter over first-party errors.
+- **Re-proved:** `promotion/evidence/journey-problem-gate.md` — all 5 checks
+  pass, three real chromium runs of the real npm target. Run 2 now fails naming
+  `"google analytics bootstrap failed on this page"`; run 3 now fails naming
+  `GET http://127.0.0.1:4313/never-responds: net::ERR_ABORTED`; the healthy
+  demo site still exits 0 with `errors: []` and `failedRequests: []` asserted.
+  Producer: `npm run verify:journey-gate` →
+  `scripts/verify-journey-problem-gate.mjs`, committed, no keys, no network, no
+  extra dependencies — it serves `examples/site` and both fixtures itself on
+  `127.0.0.1:4313`. It also refreshes
+  `promotion/evidence/journey-direct-landing.png` from the healthy run, so that
+  screenshot now has a committed producer instead of a hand-run one.
+- **Tests:** `npm run typecheck` exit 0. `npm run validate` exit 0,
+  `pass=23 warn=0 fail=0`. `npm run journey` bare (no env, real network, the
+  `https://example.com` default) exit 0, `1 passed` — the stricter assertion
+  does not make a real external site go red. `npm run verify:journey-gate`
+  exit 0 (5/5); exit 1 (1/5) on the pre-fix spec, confirmed by checking that
+  file out and re-running, so the regression check is known to fail before the
+  fix rather than assumed to.
+- **Conditions newly PASS:** 9, 12. Row 4 (horizontal overflow) is deliberately
+  left UNVERIFIED — it needs its own producer and is a different defect.
+
+**Not fixed this iteration, still open:** D1 (raw Node stack traces on the
+unconfigured path), D2, D3, D4 — see the ledger above.

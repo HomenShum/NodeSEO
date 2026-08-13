@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Failed request fixture</title>
+  </head>
+  <body>
+    <!-- The heading exists on purpose: the run must reach the problem
+         assertion and fail THERE, not fail earlier for a missing h1. -->
+    <h1>Failed request fixture</h1>
+    <p>Isolates half two of the 2026-08-13 defect: a request that never completes, and no console error to notice it by.</p>
+    <script>
+      // A request that fails with NO accompanying console message: the fetch is
+      // aborted, and its rejection is caught. Chrome logs nothing, so the only
+      // trace is Playwright's `requestfailed` event -- the channel the spec
+      // collected and never asserted on. A subresource that 404s or is refused
+      // would ALSO print "Failed to load resource" to the console, which the
+      // old spec caught by accident through the error channel; that would prove
+      // nothing about this one.
+      const controller = new AbortController();
+      fetch("/never-responds", { signal: controller.signal }).catch(() => {});
+      setTimeout(() => controller.abort(), 50);
+    </script>
+  </body>
+</html>

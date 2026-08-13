@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>First-party error fixture</title>
+  </head>
+  <body>
+    <!-- The heading exists on purpose: the run must reach the problem
+         assertion and fail THERE, not fail earlier for a missing h1. -->
+    <h1>First-party error fixture</h1>
+    <p>Isolates half one of the 2026-08-13 defect: a broken page whose own error message happens to mention Google.</p>
+    <script>
+      // Nothing here is external. The page is served from 127.0.0.1, the script
+      // is inline, and the failure is entirely the site's own. The word
+      // "google" in the message is the whole point: the old filter matched the
+      // message TEXT against /google|gstatic|consent|captcha|429/ and dropped
+      // this, so a genuinely broken page reported "1 passed".
+      throw new Error("google analytics bootstrap failed on this page");
+    </script>
+  </body>
+</html>

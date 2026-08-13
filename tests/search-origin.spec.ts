@@ -28,20 +28,28 @@ test.describe("SEO journey", () => {
     if (cta) await expect(page.getByText(new RegExp(escapeRegex(cta), "i")).first()).toBeVisible();
     await attachScreenshot(page, testInfo, foundTarget ? "google-origin-target-result" : "direct-landing");
 
-    expect(problems.errors.filter((error) => !isExternalGoogleNoise(error)), problemsSummary(problems)).toEqual([]);
+    // Both channels, or neither is a check: `failedRequests` was collected and
+    // never asserted on, so a page whose requests all failed still passed.
+    expect(problems, problemsSummary(problems)).toEqual({ errors: [], failedRequests: [] });
   });
 });
 
 function collectPageProblems(page: Page): { errors: string[]; failedRequests: string[] } {
   const errors: string[] = [];
   const failedRequests: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => {
+    if (!isExternalSearchOrigin(page.url())) errors.push(error.message);
+  });
   page.on("console", (message) => {
-    if (message.type() === "error" && !isIgnoredProblem(message.text())) errors.push(message.text());
+    // location().url is the resource the message came from — the failing
+    // subresource for browser-generated messages, the script for console.error.
+    const origin = message.location().url || page.url();
+    if (message.type() === "error" && !isIgnoredProblem(message.text()) && !isExternalSearchOrigin(origin)) errors.push(message.text());
   });
   page.on("requestfailed", (request) => {
     const url = request.url();
-    if (!isIgnoredProblem(url)) failedRequests.push(`${request.method()} ${url}: ${request.failure()?.errorText ?? "unknown"}`);
+    if (isIgnoredProblem(url) || isExternalSearchOrigin(url)) return;
+    failedRequests.push(`${request.method()} ${url}: ${request.failure()?.errorText ?? "unknown"}`);
   });
   return { errors, failedRequests };
 }
@@ -60,8 +68,25 @@ function isIgnoredProblem(value: string): boolean {
   return /fonts\.googleapis\.com|fonts\.gstatic\.com|favicon|ResizeObserver loop/i.test(value);
 }
 
-function isExternalGoogleNoise(value: string): boolean {
-  return /google|gstatic|consent|captcha|status of 429/i.test(value);
+/**
+ * The only reason a problem is dropped as someone else's: it came from Google's
+ * own search stack, which this spec drives through in the SEO_ALLOW_LIVE_GOOGLE
+ * branch and does not own.
+ *
+ * Decided by the ORIGIN of the thing that failed, never by the words in the
+ * message. Its predecessor tested the message text against
+ * /google|gstatic|consent|captcha|status of 429/, so a first-party
+ * `Error("google analytics bootstrap failed")` thrown by the user's own page
+ * was silently discarded — see tests/fixtures/first-party-error. Origin-based,
+ * this filter is inert on the default keyless run, which never loads a Google
+ * URL at all.
+ */
+function isExternalSearchOrigin(url: string): boolean {
+  try {
+    return /(^|\.)(google\.[a-z.]+|gstatic\.com|googleusercontent\.com|recaptcha\.net)$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
 }
 
 function escapeRegex(value: string): string {
