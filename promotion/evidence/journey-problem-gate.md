@@ -1,8 +1,8 @@
 # Journey problem-gate proof
 
-Generated: 2026-08-13T19:16:42.361Z
+Generated: 2026-08-13T21:10:08.518Z
 Producer: `node scripts/verify-journey-problem-gate.mjs` (node v22.22.2)
-Under test: `npm run journey` -> `tests/search-origin.spec.ts`, chromium, base URL `http://127.0.0.1:4514`
+Under test: `npm run journey` -> `tests/search-origin.spec.ts`, chromium, base URL `http://127.0.0.1:4614`
 
 > Four real runs of the real npm target against four real pages served
 > locally. The point is runs 2, 3 and 4: the spec used to drop any console
@@ -28,15 +28,11 @@ Overall: **pass**
 
 ```
 
-> nodeseo@0.1.0 journey
-> playwright test
-
-
 Running 1 test using 1 worker
 
-  ok 1 [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing (828ms)
+  ok 1 [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing (1.0s)
 
-  1 passed (2.1s)
+  1 passed (2.4s)
 ```
 
 Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
@@ -68,7 +64,7 @@ Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
       34 |   });
       35 | });
       36 |
-        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\wave3\NodeSEO\tests\search-origin.spec.ts:33:49
+        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\wave3b\NodeSEO\tests\search-origin.spec.ts:33:49
 ```
 
 ## Run 3 — `tests/fixtures/failed-request` (aborted fetch: a failed request Chrome logs nothing about), expected exit 1, got 1
@@ -76,7 +72,7 @@ Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
 ```
   1) [chromium] › tests\search-origin.spec.ts:4:3 › SEO journey › records one search-origin scenario or safely falls back to direct landing 
 
-    Error: GET http://127.0.0.1:4514/never-responds: net::ERR_ABORTED
+    Error: GET http://127.0.0.1:4614/never-responds: net::ERR_ABORTED
 
     expect(received).toEqual(expected) // deep equality
 
@@ -87,7 +83,7 @@ Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
         "errors": Array [],
     -   "failedRequests": Array [],
     +   "failedRequests": Array [
-    +     "GET http://127.0.0.1:4514/never-responds: net::ERR_ABORTED",
+    +     "GET http://127.0.0.1:4614/never-responds: net::ERR_ABORTED",
     +   ],
       }
 
@@ -98,7 +94,7 @@ Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
       34 |   });
       35 | });
       36 |
-        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\wave3\NodeSEO\tests\search-origin.spec.ts:33:49
+        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\wave3b\NodeSEO\tests\search-origin.spec.ts:33:49
 ```
 
 ## Run 4 — `tests/fixtures/first-party-console-error` (inline `console.error` whose message contains "favicon"), expected exit 1, got 1
@@ -128,5 +124,5 @@ Landing capture kept at `promotion/evidence/journey-direct-landing.png`.
       34 |   });
       35 | });
       36 |
-        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\wave3\NodeSEO\tests\search-origin.spec.ts:33:49
+        at C:\Users\hshum\AppData\Local\Temp\claude\D--VSCode-Projects-cheiron-ai-take-home\440ef9e9-83bb-4fe6-8676-4fdaaf332f3e\scratchpad\wave3b\NodeSEO\tests\search-origin.spec.ts:33:49
 ```

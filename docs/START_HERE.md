@@ -53,7 +53,7 @@ waste your first day:
 ## Step 1 — The entry point is an npm script, not a route
 
 **File:** `package.json`
-**Symbol:** `scripts.validate`
+**Symbol:** `scripts.validate` — `package.json:22` (`"validate":`)
 **Called by:** a human typing `npm run validate`
 **Calls next:** `scripts.typecheck`, then `scripts.audit` → `src/audit-static.ts`
 
@@ -79,7 +79,7 @@ audit starts, so a broken tree can never print a green report.
 ## Step 2 — The primary user action: one file, top to bottom
 
 **File:** `src/audit-static.ts`
-**Symbol:** the module body, lines 33-55
+**Symbol:** the module body — `src/audit-static.ts:33` (`const config = readConfig();`) through `src/audit-static.ts:55` (`process.exitCode = 1`)
 **Called by:** `tsx`, as the program entry
 **Calls next:** `readConfig`, then `buildReport`
 
@@ -114,7 +114,7 @@ except the config yet.
 ## Step 3 — Validation and domain types
 
 **File:** `src/audit-static.ts` (types), `src/utils.ts` (`readConfig`)
-**Symbol:** `AuditStatus`, `AuditFinding`, `AuditReport`, `buildReport`
+**Symbol:** `src/audit-static.ts:5` (`type AuditStatus`), `src/audit-static.ts:7` (`type AuditFinding`), `src/audit-static.ts:24` (`type AuditReport`), `src/audit-static.ts:57` (`function buildReport`), `src/utils.ts:89` (`export function readConfig`)
 **Called by:** the module body
 **Calls next:** `auditRoute`, `auditRootMarkers`, `auditSitemap`, `auditRobots`, `auditPrivateRouteGuard`
 
@@ -150,7 +150,7 @@ call lives.
 ## Step 4 — Agent orchestration: one call, one command, no loop
 
 **File:** `src/judge-video-gemini.ts`
-**Symbol:** the module body, line 43
+**Symbol:** the module body — `src/judge-video-gemini.ts:45` (`const result = dryRun ? dryResult()`)
 **Called by:** `npm run judge-video` (a *different* command from Steps 1-3)
 **Calls next:** `judgeVideo` → `generateObject` from the AI SDK
 
@@ -175,9 +175,11 @@ state machine — one branch and one call.
 **Input** — a video file path, a scenario name, and `GOOGLE_GENERATIVE_AI_API_KEY`.
 **Output** — a `Result` holding eight 0-10 scores, timestamped issues, and a summary.
 **Failure behavior** — three guards run before anything is sent: no `--input`, a
-missing file, or a missing key each throw immediately. The throw is currently an
-unhandled exception, so Node prints a stack trace — defect **D1** in
-`promotion/PROMOTION_LOG.md`, open on purpose.
+missing file, or a missing key. The last two yield to `--dry-run`, which opens no
+file and calls no model, so the write path is exercisable from a clean clone with
+no key. A guard that does fire prints its sentence and exits 1 — see Step 8 for
+where that is handled, and `promotion/PROMOTION_LOG.md` for the crash dump it
+used to be (defect **D1**, closed in iteration 3).
 **Next** — Step 5, what constrains the model instead of tools.
 
 ---
@@ -185,7 +187,7 @@ unhandled exception, so Node prints a stack trace — defect **D1** in
 ## Step 5 — Tool registration and invocation: there are none, and here is what replaces them
 
 **File:** `src/judge-video-gemini.ts`
-**Symbol:** `schema`
+**Symbol:** `schema` — `src/judge-video-gemini.ts:21` (`const schema = z.object({`)
 **Called by:** `generateObject`
 **Calls next:** nothing — the model cannot call anything
 
@@ -216,7 +218,7 @@ const schema = z.object({
 ## Step 6 — Persistence: two files, no database
 
 **File:** `src/utils.ts`
-**Symbol:** `writeJson`, `writeText`
+**Symbol:** `src/utils.ts:107` (`export function writeJson`), `src/utils.ts:112` (`export function writeText`)
 **Called by:** all five commands that produce a report
 **Calls next:** `node:fs`
 
@@ -250,8 +252,8 @@ the write is the last step, a partial report is not possible.
 ## Step 7 — Streaming and rendering: deliberately absent
 
 **File:** `src/audit-static.ts`
-**Symbol:** `renderConsole`
-**Called by:** the module body, line 54
+**Symbol:** `renderConsole` — `src/audit-static.ts:159` (`function renderConsole`)
+**Called by:** the module body — `src/audit-static.ts:54` (`console.log(renderConsole(report))`)
 **Calls next:** `console.log`
 
 **Why this exists**
@@ -280,8 +282,8 @@ commands, so learning one teaches you the rest.
 
 ## Step 8 — Failure and recovery
 
-**File:** `src/audit-static.ts` line 55; `tests/search-origin.spec.ts` lines 33-95
-**Symbol:** `process.exitCode`, `isExternalSearchOrigin`
+**File:** `src/audit-static.ts:55` (`process.exitCode = 1`); `tests/search-origin.spec.ts:33` (`toEqual({ errors: [], failedRequests: [] })`)
+**Symbol:** `process.exitCode`, `isExternalSearchOrigin` — `tests/search-origin.spec.ts:90` (`function isExternalSearchOrigin`)
 **Called by:** the module body / the Playwright journey
 **Calls next:** the shell, or Playwright's reporter
 
@@ -314,29 +316,33 @@ gone. The full history is in `promotion/PROMOTION_LOG.md`.
 
 **Input** — whatever the page does at runtime.
 **Output** — exit 0, or exit 1 naming the specific problem.
-**Failure behavior** — the known rough edge: the three credentialed commands
-report a missing key by throwing, so Node prints a stack trace with module-loader
-frames instead of a one-line "you have not configured this yet". Defect **D1**,
-open.
+**Failure behavior** — every command is a module body with no `main()`, so a
+guard that throws would land on Node's default handler and come out as a stack
+trace with ESM loader frames. One `process.on("uncaughtException")` in
+`src/utils.ts:25` (`process.on("uncaughtException"`) prints the message and exits
+1 instead, for all seven commands at once — a missing key reads as a missing key.
+`SEO_DEBUG=1` puts the stack back when the error is a real bug. This was defect
+**D1**; `npm run verify:cli` now fails if a Node frame reaches the user.
 **Next** — Step 9, the checks that keep all of this true.
 
 ---
 
 ## Step 9 — The tests that prove the flow
 
-**File:** `scripts/verify-journey-problem-gate.mjs`, `scripts/verify-cli-contract.ts`, `tests/search-origin.spec.ts`
-**Symbol:** `checks` / `checks`
-**Called by:** `npm run verify:journey-gate`, `npm run verify:cli`, `npm run journey`
+**File:** `scripts/verify-journey-problem-gate.mjs`, `scripts/verify-cli-contract.ts`, `scripts/verify-citations.mjs`, `tests/search-origin.spec.ts`
+**Symbol:** `scripts/verify-journey-problem-gate.mjs:156` (`const checks = [`), `scripts/verify-cli-contract.ts:29` (`const checks`)
+**Called by:** `npm run verify:journey-gate`, `npm run verify:cli`, `npm run verify:citations`, `npm run journey`
 **Calls next:** the real npm targets, in child processes
 
 **Why this exists**
-There is no unit-test suite. There are three checks, and each one exists because
+There is no unit-test suite. There are four checks, and each one exists because
 something specific went wrong.
 
 | Command | What it proves | Needs |
 |---|---|---|
 | `npm run validate` | The tool typechecks and the audit end-to-end produces `pass=23 warn=0 fail=0` on the bundled site | nothing |
-| `npm run verify:cli` | The flag, config, environment and path rules every command inherits, including that a shell variable beats `.env` | nothing |
+| `npm run verify:cli` | The flag, config, environment and path rules every command inherits, including that a shell variable beats `.env`, and that an unconfigured command prints one sentence rather than a stack | nothing |
+| `npm run verify:citations` | That every citation in this file, in the other documents, and in the tours matches the code on the line it names — and that only `promotion/PRODUCT_GOAL.md` states the scorecard | nothing |
 | `npm run verify:journey-gate` | **That the browser journey's quality gate can actually fail** | chromium |
 
 **Core code**
@@ -370,7 +376,9 @@ Say you want to check that every public page has an Open Graph image.
 1. Write `auditOgImage(findings)` in `src/audit-static.ts` next to
    `auditRootMarkers`, using `pushRequired` so the pass/fail rule stays in one
    place.
-2. Call it from `buildReport`, in the list at lines 59-63.
+2. Call it from `buildReport`, in the list that starts at
+   `src/audit-static.ts:59` (`const routes = publicRoutes.map`) and ends at
+   `src/audit-static.ts:63` (`auditPrivateRouteGuard(findings)`).
 3. Add a failing case to `examples/site/`, run `npm run validate`, and watch
    `fail` go to 1 and the exit code go to 1.
 4. Fix the fixture, re-run, and regenerate the committed receipt with
@@ -381,8 +389,10 @@ You touched one file. That is the intended shape.
 ## Then read
 
 - [`.tours/`](../.tours) — the same three flows as an interactive CodeTour,
-  pointing at live source. `npm run verify:tours` proves every line still
-  resolves.
+  pointing at live source. `npm run verify:citations` proves every cited line
+  still says what the citation claims — not merely that the line number exists,
+  which is the check five repositories shipped and none of them caught anything
+  with.
 - [`docs/codebase/`](codebase/) — stack, structure, architecture, conventions,
   integrations, testing, concerns.
 - [`docs/SIMPLIFICATION_REPORT.md`](SIMPLIFICATION_REPORT.md) — what Wave 3

@@ -13,7 +13,9 @@ const outDir = optionValue("--out-dir") ?? join(ROOT, "docs", "reports", "gemini
 
 if (!input) throw new Error("Pass --input <video>");
 const inputPath = fromRoot(input);
-if (!existsSync(inputPath)) throw new Error(`Video not found: ${input}`);
+// `--dry-run` never opens the file — it only echoes the path back — so requiring
+// the file to exist made the one model path unexercisable from a clean clone.
+if (!dryRun && !existsSync(inputPath)) throw new Error(`Video not found: ${input}`);
 if (!dryRun && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is required for Gemini video judging");
 
 const schema = z.object({

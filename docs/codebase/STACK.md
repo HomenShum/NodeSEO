@@ -11,9 +11,9 @@ floor is real, not decorative:
 
 | Feature | Where | What it replaced |
 |---|---|---|
-| `process.loadEnvFile` (20.12+) | `src/utils.ts:37` | a hand-rolled `.env` parser |
-| built-in `fetch` (18+) | `src/search-console-report.ts:95` | an HTTP client package |
-| `node:crypto` `createSign` | `src/search-console-report.ts:160` | a JWT/OAuth library |
+| `process.loadEnvFile` (20.12+) | `src/utils.ts:52` (`process.loadEnvFile(path)`) | a hand-rolled `.env` parser |
+| built-in `fetch` (18+) | `src/search-console-report.ts:95` (`await fetch(endpoint`) | an HTTP client package |
+| `node:crypto` `createSign` | `src/search-console-report.ts:160` (`createSign("RSA-SHA256")`) | a JWT/OAuth library |
 
 **TypeScript 5.7, strict, `module: NodeNext`.** There is no build step and no
 bundler. `tsc --noEmit` typechecks; `tsx` runs the `.ts` files directly. Nothing
@@ -64,7 +64,7 @@ signed-in session. See [`INTEGRATIONS.md`](INTEGRATIONS.md).
 Worth knowing so you do not go looking:
 
 - **No test framework** beyond Playwright. The two non-browser checks
-  (`scripts/verify-cli-contract.ts`, `scripts/verify-tours.mjs`) use `node:assert`
+  (`scripts/verify-cli-contract.ts`, `scripts/verify-citations.mjs`) use `node:assert`
   and an exit code.
 - **No linter or formatter.** Style is whatever `tsc --strict` accepts.
 - **No bundler, no build output, no `dist/`.**

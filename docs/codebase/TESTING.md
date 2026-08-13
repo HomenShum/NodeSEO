@@ -7,8 +7,8 @@ Four commands. Three of them need no keys and no network.
 | Command | Time | Needs | What it proves |
 |---|---|---|---|
 | `npm run validate` | ~5s | nothing | `tsc --noEmit` is clean, and the static audit end-to-end produces `pass=23 warn=0 fail=0` against the bundled demo site |
-| `npm run verify:cli` | ~1s | nothing | The flag, config, `.env` and path rules in `src/utils.ts` that all seven commands inherit — 20 assertions |
-| `npm run verify:tours` | <1s | nothing | Every step of every CodeTour still points at the code it names — 34 steps |
+| `npm run verify:cli` | ~6s | nothing | The flag, config, `.env` and path rules in `src/utils.ts` that all seven commands inherit, and what an unconfigured command prints — 25 assertions |
+| `npm run verify:citations` | <1s | nothing | Every citation in the docs and the tours points at the code it names, and the promotion scorecard is stated in one place — 89 claims |
 | `npm run verify:journey-gate` | ~30s | chromium | **That the browser journey's quality gate can actually fail** — 7 checks across 4 real Chromium runs |
 
 Plus `npm run journey`, which is the thing `verify:journey-gate` runs; you rarely
@@ -97,9 +97,9 @@ Mechanics worth knowing before you extend it: `src/utils.ts` snapshots
 temporary directory and a fake `argv` and *then* imports the module dynamically.
 One import, one set of arguments, all assertions read from it.
 
-## `verify:tours` — keeping the walkthrough honest
+## `verify:citations` — keeping the walkthrough honest
 
-`scripts/verify-tours.mjs`. Each CodeTour step carries both a `line` (what a
+`scripts/verify-citations.mjs`. Each CodeTour step carries both a `line` (what a
 reader sees) and a `pattern` (a regex naming the code that line should be). The
 script asserts the file exists, the line is in range, and the pattern matches on
 exactly that line. Insert three lines at the top of a file and this goes red

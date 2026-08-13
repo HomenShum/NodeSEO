@@ -15,7 +15,11 @@ const landingFrames = numberOption("--landing-frames", 14, 1, 240);
 
 mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.connectOverCDP(cdpUrl);
+// Playwright's own connect failure is a multi-line dump with a websocket call
+// log; this is the one guard whose message was not already a usable sentence.
+const browser = await chromium.connectOverCDP(cdpUrl).catch(() => {
+  throw new Error(`No Chrome DevTools endpoint at ${cdpUrl}. Start Chrome with --remote-debugging-port=9222, or pass --cdp-url.`);
+});
 const context = browser.contexts()[0] ?? await browser.newContext();
 const page = await context.newPage();
 let frameIndex = 0;

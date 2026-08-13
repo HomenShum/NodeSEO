@@ -47,13 +47,13 @@
     },
     {
       "file": "scripts/verify-cli-contract.ts",
-      "line": 60,
+      "line": 61,
       "pattern": "const utils = await import",
       "description": "The second committed check, covering what the browser journey never reaches: the flag, config, environment, and path rules in `src/utils.ts` that all seven commands inherit. `src/utils.ts` snapshots `process.cwd()` and `process.argv` when it loads, so the check stages both and then imports it dynamically."
     },
     {
       "file": "scripts/verify-cli-contract.ts",
-      "line": 114,
+      "line": 115,
       "pattern": "beats the .env file",
       "description": "An example of what a characterization check is for. This pins a rule that is easy to break by accident and impossible to notice: a variable already in your shell wins over `.env`, so `SEO_BASE_URL=… npm run audit` is never silently overridden by a file you forgot you had."
     },
@@ -65,7 +65,7 @@
     },
     {
       "file": "src/judge-video-gemini.ts",
-      "line": 17,
+      "line": 19,
       "pattern": "GOOGLE_GENERATIVE_AI_API_KEY is required",
       "description": "**The known rough edge, deliberately not fixed in this wave.** The three commands that need credentials — `search-console`, `judge-video`, `capture:cdp` — report a missing key by throwing, so Node prints a stack trace with ESM loader frames. The message text is good; the presentation reads as \"the tool is broken\" rather than \"you have not configured this yet\". Tracked as defect D1 in `promotion/PROMOTION_LOG.md`; it is product behaviour, and this wave was structural. See `docs/codebase/CONCERNS.md`."
     }

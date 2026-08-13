@@ -145,8 +145,9 @@ Each journey states, in this order:
   Google credentials this baseline deliberately did not obtain or create, and a
   local Chrome running with remote debugging. What was observed instead: the
   designed empty path `npm run search-console -- --dry-run` exits 0 and writes a
-  shaped report, while all three credentialed commands fail with a raw Node
-  stack trace rather than a stated prerequisite (defect D1).
+  shaped report, while all three credentialed commands failed with a raw Node
+  stack trace rather than a stated prerequisite (defect D1, closed in
+  iteration 3 — they now exit 1 naming what to configure).
 
 ---
 
@@ -159,9 +160,11 @@ the user's behalf over time. Mapping the three required journeys onto it:
 
 - **Recovery** — **does not apply as a UI journey, but is unmet as a CLI one.**
   There is no long-running session to lose, so nothing needs to survive a
-  reload. There *is* a mid-run failure story and it is bad: every failure path
-  observed in this baseline surfaces as an unhandled Node exception (D1). The
-  gap is a stated prerequisite and a clean exit, not a recovery UI.
+  reload. There *is* a mid-run failure story: every failure path observed in this
+  baseline surfaced as an unhandled Node exception (D1). Iteration 3 closed it
+  — the startup failures now name the prerequisite and exit 1. What remains
+  unmet is failure *during* a run: a Search Console call that 401s mid-pull
+  still ends the process, and nothing resumes it.
 - **Steering** — **does not apply.** The user cannot correct the model partway
   through: the judging call is one request with one response, and the entire
   input is decided before it is issued. Correcting the run means changing the

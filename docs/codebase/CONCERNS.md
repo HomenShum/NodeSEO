@@ -11,10 +11,10 @@ restated in full. Wave 3 was structural and deliberately closed none of them.
 
 | # | Severity | One line | Where |
 |---|---|---|---|
-| D1 | major | The three credentialed commands report a missing key by throwing, so Node prints a stack trace with module-loader frames. The message text is good; the presentation reads as "the tool is broken" rather than "you have not configured this yet" | `search-console`, `judge-video`, `capture:cdp` |
+| ~~D1~~ | ~~major~~ | **Closed in iteration 3.** The three commands that need credentials or a browser now exit 1 printing one sentence naming what to configure. Kept in the table because the ledger is append-only; the reproduction and the fix are in `promotion/PROMOTION_LOG.md` | `src/utils.ts` |
 | D2 | minor | The README install block puts `npx playwright install chromium` ahead of the zero-key headline command, which does not need it | `README.md` |
-| D3 | minor | `--site-root` outside the repo prints a relative path escaping the repo (`siteRoot=../../badsite`) in the receipt header | `src/audit-static.ts:69` |
-| D4 | minor | With no environment set, `npm run journey` runs against the `https://example.com` default and reports success without naming the URL it visited | `playwright.config.ts:11` |
+| D3 | minor | `--site-root` outside the repo prints a relative path escaping the repo (`siteRoot=../../badsite`) in the receipt header | `src/audit-static.ts:69` (`siteRoot: slash(relative(ROOT, siteRoot))`) |
+| D4 | minor | With no environment set, `npm run journey` runs against the `https://example.com` default and reports success without naming the URL it visited | `playwright.config.ts:11` (`baseURL: process.env.PLAYWRIGHT_BASE_URL`) |
 
 D2 is partially addressed by documentation: `docs/START_HERE.md` and
 [`INTEGRATIONS.md`](INTEGRATIONS.md) both state plainly which commands need a
@@ -66,7 +66,7 @@ intentionally-documented duplicate rather than silently left.
 
 ### `--no-write` is a flag nothing pulls
 
-`src/audit-static.ts:45` supports `--no-write`, which suppresses both receipt
+`src/audit-static.ts:45` (`const writeDocs = !hasFlag("--no-write")`) supports `--no-write`, which suppresses both receipt
 files. No npm script, document, or CI job uses it. It survived Wave 3 because
 removing a command-line flag is an observable behaviour change and the rule for
 this wave was to preserve behaviour unless a defect was proven. If you are
@@ -75,7 +75,7 @@ deletion.
 
 ### The strongest check does not run in CI
 
-`.github/workflows/ci.yml` runs `validate`, `verify:cli` and `verify:tours` —
+`.github/workflows/ci.yml` runs `validate`, `verify:cli` and `verify:citations` —
 all keyless and fast. It does **not** run `verify:journey-gate`, which is the
 check that proves the browser journey can fail, because that needs a chromium
 download on every CI run.
@@ -128,7 +128,12 @@ gate script does not clear its own output directory before running.
 
 ## Where the promotion scorecard stands
 
-`promotion/PRODUCT_GOAL.md` records **4/12 PASS**, 2 FAIL, 6 UNVERIFIED, as of
-2026-08-13. Wave 3 changed no scorecard row: it removed structure, added two
-checks and this packet, and left every product defect open. If you are picking up
-the product loop, that file and `PROMOTION_LOG.md` are your queue — not this one.
+One place: [`promotion/PRODUCT_GOAL.md`](../../promotion/PRODUCT_GOAL.md), which
+owns the twelve-row table and the only total derived from it. The number is
+deliberately not repeated here, because a copied total is wrong the moment an
+iteration runs — it was stated in three documents with two different values until
+`npm run verify:citations` started failing on the copies.
+
+Wave 3 changed no scorecard row: it removed structure, added two checks and this
+packet, and left every product defect open. If you are picking up the product
+loop, that file and `PROMOTION_LOG.md` are your queue — not this one.

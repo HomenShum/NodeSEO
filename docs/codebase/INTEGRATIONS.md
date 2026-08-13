@@ -9,6 +9,12 @@ needs, and how to exercise it without credentials.
 more (`frames:video`, `compress-video`) need nothing when given `--dry-run`.
 Everything else needs a browser, a binary, or a credential.
 
+When one of them is missing, the command prints one sentence naming what to
+configure and exits 1 — never a stack trace. Set `SEO_DEBUG=1` to get the stack
+back, which is what you want when the failure is a real bug rather than a missing
+key. The handler is a single `process.on("uncaughtException")` in
+`src/utils.ts:25` (`process.on("uncaughtException"`), imported by every command.
+
 | Command | External thing | Credential | Keyless path |
 |---|---|---|---|
 | `audit` | none | — | it *is* the keyless path |
@@ -17,7 +23,7 @@ Everything else needs a browser, a binary, or a credential.
 | `compress-video` | ffmpeg binary | — | `--dry-run` prints the exact ffmpeg command |
 | `perf` | headless Chromium | — | needs `npx playwright install chromium` |
 | `search-console` | Google Search Console API | token or service account | `--dry-run` writes a shaped report |
-| `judge-video` | Google Gemini API | `GOOGLE_GENERATIVE_AI_API_KEY` | `--dry-run` writes all-zero scores |
+| `judge-video` | Google Gemini API | `GOOGLE_GENERATIVE_AI_API_KEY` | `--dry-run` writes all-zero scores, and needs neither a key nor a real video file |
 | `capture:cdp` | **your own Chrome**, over the DevTools protocol | none, but see below | none — this one has no dry run |
 
 ## Google Search Console — `npm run search-console`
@@ -34,7 +40,7 @@ Two ways to authenticate, checked in this order:
    scope `webmasters.readonly`), exchanges it at
    `https://oauth2.googleapis.com/token`, and uses the returned access token.
    There is no Google auth library in `package.json`; `serviceAccountJwt` at
-   `src/search-console-report.ts:149` is the whole implementation, about fifteen
+   `src/search-console-report.ts:149` (`function serviceAccountJwt`) is the whole implementation, about fifteen
    lines.
 
 It issues exactly two requests per run — one for the `query` dimension, one for
@@ -82,7 +88,7 @@ Start-Process "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" `
 ```
 
 **What the receipt deliberately does not keep** (`sanitizeHref`,
-`src/chrome-cdp-capture.ts:79`): for a Google URL it keeps only origin, path and
+`src/chrome-cdp-capture.ts:83` (`function sanitizeHref`)): for a Google URL it keeps only origin, path and
 the `q` parameter; for any other URL it strips the query string and fragment
 entirely. Account, sign-out, location and personalization parameters never reach
 `recording-state.json`. The README lists this as a safety rule; this function is
@@ -131,5 +137,6 @@ with your real shell environment winning over both.
 | `GOOGLE_SEARCH_CONSOLE_SITE_URL`, `GOOGLE_SEARCH_CONSOLE_ACCESS_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS` | `search-console` |
 | `CHROME_CDP_URL` | `capture:cdp` |
 | `JOURNEY_GATE_PORT` | `verify:journey-gate` — override when 4313 is taken |
+| `SEO_DEBUG` | every command — any value restores the full stack trace on failure |
 
 `.env` and `.env.local` are gitignored. Never commit a service-account JSON.

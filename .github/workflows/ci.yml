@@ -19,4 +19,4 @@ jobs:
       # no keys, ~1s. `verify:journey-gate` is deliberately NOT here — it needs a
       # chromium download; see docs/codebase/CONCERNS.md.
       - run: npm run verify:cli
-      - run: npm run verify:tours
+      - run: npm run verify:citations

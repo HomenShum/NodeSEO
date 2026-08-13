@@ -12,7 +12,7 @@ NodeSEO/
 ├── docs/                this packet, plus generated receipts (gitignored)
 ├── promotion/           the product-loop ledger: goal, journeys, defects, evidence
 ├── .tours/              CodeTour walkthroughs of the three main flows
-└── .github/workflows/   CI: validate, verify:cli, verify:tours
+└── .github/workflows/   CI: validate, verify:cli, verify:citations
 ```
 
 ## `src/` — one file per command, plus one shared module
@@ -59,8 +59,8 @@ or proves a committed claim, and each has an npm script so it is discoverable.
 |---|---|---|
 | `capture-validate-receipt.mjs` | `capture:receipt` | The README terminal image and `docs/reports/examples/SEO_AUDIT.example.md`, from a real `npm run validate` run |
 | `verify-journey-problem-gate.mjs` | `verify:journey-gate` | That the browser journey's quality gate can actually fail. Writes `promotion/evidence/journey-problem-gate.md` |
-| `verify-cli-contract.ts` | `verify:cli` | The flag/config/env/path contract in `src/utils.ts` |
-| `verify-tours.mjs` | `verify:tours` | That every CodeTour step still points at the code it names |
+| `verify-cli-contract.ts` | `verify:cli` | The flag/config/env/path contract in `src/utils.ts`, and that an unconfigured command prints one sentence rather than a stack |
+| `verify-citations.mjs` | `verify:citations` | That every documented citation — tour step or `path:line` in markdown — matches the code on the cited line, and that only `promotion/PRODUCT_GOAL.md` states the scorecard |
 
 ## `examples/site/` — the demo surface
 

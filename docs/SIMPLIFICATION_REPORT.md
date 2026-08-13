@@ -7,6 +7,14 @@ reused.
 Every row names the command that produces it. A row with no command is not a
 measurement.
 
+> **Wave 3b note, 2026-08-13.** Two of the numbers below are Wave 3's and are
+> left exactly as they were measured. Since then: `npm run verify:cli` grew five
+> checks for defect D1 and runs 25/25, and `npm run verify:tours` became
+> `npm run verify:citations`, which checks markdown citations and the promotion
+> scorecard as well as tour steps. The "How to reproduce this report" block at
+> the end uses the current names; the tables do not, because a measurement
+> re-labelled after the fact stops being a measurement.
+
 ## The table
 
 | Measure | Before | After | Change | Evidence command |
@@ -31,7 +39,7 @@ measurement.
 | Canonical workflow test (`npm run validate`) | exit 0, `pass=23 warn=0 fail=0` | exit 0, `pass=23 warn=0 fail=0` | unchanged | `npm run validate` |
 | Browser workflow gate (`verify:journey-gate`) | exit 0, 7/7 checks | exit 0, 7/7 checks | unchanged | `JOURNEY_GATE_PORT=4514 npm run verify:journey-gate` |
 | Shared-module contract check | **did not exist** | exit 0, 20/20 checks | **+1 check, 0→20 assertions** | `npm run verify:cli` |
-| Walkthrough validation | **did not exist** | exit 0, 34/34 steps | **+1 check** | `npm run verify:tours` |
+| Walkthrough validation | **did not exist** | exit 0, 34/34 steps | **+1 check** | `npm run verify:tours`, renamed in Wave 3b — see the note above |
 | Checks running in CI | 1 | 3 | +2 | `.github/workflows/ci.yml` |
 | Production bundle size | not applicable — no build step, no bundler, no `dist/`; `tsx` runs the TypeScript directly and nothing is published | | | — |
 | Additions/deletions, everything | | | 29 files, +1744 / −84 | `git diff --shortstat` |
@@ -104,9 +112,9 @@ in place.
 | `loadEnvFile` — a 14-line hand-rolled `.env` parser | `src/utils.ts` | Node 22 has `process.loadEnvFile`. **Measured equivalent before deleting**: both parsers were run over this repo's own `.env.example` and diffed key by key — 9 keys, 0 differences — and the precedence rule (a variable already in the environment wins) was confirmed identical with a shell-set variable. |
 | `joinOrAbsolute` — a hand-rolled `/^[A-Za-z]:[\\/]/ \|\| startsWith("/")` absolute-path test | `src/utils.ts` | `path.resolve(ROOT, p)` is exactly this behaviour, in stdlib, correct on UNC paths too |
 | `resolveFromRoot` | `src/utils.ts` | Dead — knip found zero callers. It was also `resolve(ROOT, p)`: the repo had two spellings of the same idea, one of them unused |
-| `joinOrRoot` | `src/audit-static.ts:233` | A verbatim third copy of `joinOrAbsolute`, in a different file. jscpd flagged it against `src/utils.ts:65` |
-| `escapeRegex` | `src/audit-static.ts:229` | Guarded nothing. Both call sites pass string literals (`"description"`, `"canonical"`); no user input reaches those patterns. jscpd flagged it against the identical copy in `tests/search-origin.spec.ts`, which **is** needed — that one escapes user-supplied heading text — so the duplicate was resolved by deleting the unnecessary copy rather than by extracting a shared helper |
-| `countBy` — a generic counter used once | `src/audit-static.ts:223` | Its one call site immediately patched the result (`summary[status] ??= 0`) and cast it. Replaced by three lines that produce the right type with no cast and no fixup. Output is byte-identical on the demo site |
+| `joinOrRoot` | `src/audit-static.ts` | A verbatim third copy of `joinOrAbsolute`, in a different file. jscpd flagged it against `src/utils.ts` |
+| `escapeRegex` | `src/audit-static.ts` | Guarded nothing. Both call sites pass string literals (`"description"`, `"canonical"`); no user input reaches those patterns. jscpd flagged it against the identical copy in `tests/search-origin.spec.ts`, which **is** needed — that one escapes user-supplied heading text — so the duplicate was resolved by deleting the unnecessary copy rather than by extracting a shared helper |
+| `countBy` — a generic counter used once | `src/audit-static.ts` | Its one call site immediately patched the result (`summary[status] ??= 0`) and cast it. Replaced by three lines that produce the right type with no cast and no fixup. Output is byte-identical on the demo site |
 | `args`, `WorkflowConfig`, `loadEnvFile` exports | `src/utils.ts` | Used only inside the module. Un-exported, not deleted — the code stays, the public surface shrinks |
 | The `journey` config block: `directPath`, `primaryHeading`, `primaryCtaText` | `src/utils.ts` type and `config/seo-workflow.config.example.json` | **A knob nothing read.** `grep -rn "directPath\|primaryHeading\|primaryCtaText" src tests scripts` shows the Playwright journey reading `SEO_DIRECT_PATH` / `SEO_PRIMARY_HEADING` / `SEO_PRIMARY_CTA_TEXT` from the *environment* and never touching the config file. The example config invited a user to set three values that had no effect |
 
@@ -235,8 +243,8 @@ npm install
 npx playwright install chromium          # only for the last one
 
 npm run validate                         # exit 0, pass=23 warn=0 fail=0
-npm run verify:cli                       # 20/20
-npm run verify:tours                     # 34/34
+npm run verify:cli                       # 25/25  (20 in Wave 3, + 5 D1 checks)
+npm run verify:citations                 # 89 claims  (was verify:tours, 34/34)
 npm run verify:journey-gate              # 7/7  (JOURNEY_GATE_PORT=<n> if 4313 is taken)
 
 npx knip                                 # no output = clean

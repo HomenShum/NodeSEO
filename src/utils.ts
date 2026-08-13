@@ -12,6 +12,21 @@ import { dirname, resolve } from "node:path";
 /** The directory `npm run …` was invoked from, which is the repo root. */
 export const ROOT = process.cwd();
 
+// Defect D1. Every command here is a module body with no `main()`, so a guard
+// that throws — a missing key, a missing file, a config path that is not there —
+// reaches Node's default handler and its perfectly good sentence comes out
+// buried under a stack trace with ESM loader frames. A first-time reader sees
+// "the tool is broken" instead of "I have not configured this yet". All seven
+// commands import this module, so the handler goes here once rather than as a
+// try/catch in each of them, and it covers the guards inside `readConfig` and
+// `numberOption` too, which no per-command wrapper would reach.
+// The messages are unchanged; only the framing around them is. Set SEO_DEBUG=1
+// to get the stack back when the error is a real bug rather than a missing key.
+process.on("uncaughtException", (error) => {
+  console.error(process.env.SEO_DEBUG ? error.stack : error.message);
+  process.exit(1);
+});
+
 const args = process.argv.slice(2);
 
 /** The shape of the file passed as `--config`; see `config/seo-workflow.config.example.json`. */

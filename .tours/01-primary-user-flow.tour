@@ -23,7 +23,7 @@
     },
     {
       "file": "src/utils.ts",
-      "line": 74,
+      "line": 89,
       "pattern": "export function readConfig",
       "description": "Where untrusted input becomes settings. The user names a JSON file with `--config`; this reads and parses it, and throws with the path if it is missing. Note what it does *not* do — there is no schema validation here. Every field is optional and every reader supplies its own fallback, which is the next step."
     },
@@ -71,7 +71,7 @@
     },
     {
       "file": "src/utils.ts",
-      "line": 92,
+      "line": 107,
       "pattern": "export function writeJson",
       "description": "Both writers create their parent directory first, so a fresh clone with no `docs/reports/` works without a setup step. That is the whole persistence layer of this repository."
     },

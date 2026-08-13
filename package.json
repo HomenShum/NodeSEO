@@ -17,7 +17,7 @@
     "capture:receipt": "node scripts/capture-validate-receipt.mjs",
     "verify:cli": "tsx scripts/verify-cli-contract.ts",
     "verify:journey-gate": "node scripts/verify-journey-problem-gate.mjs",
-    "verify:tours": "node scripts/verify-tours.mjs",
+    "verify:citations": "node scripts/verify-citations.mjs",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run audit -- --config config/seo-workflow.config.example.json --site-root examples/site"
   },

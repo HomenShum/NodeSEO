@@ -20,9 +20,10 @@
  * Run: npm run verify:cli
  */
 import { strict as assert } from "node:assert";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const checks: Array<[string, () => void]> = [];
@@ -148,6 +149,49 @@ check("urlFor joins a base and a route without doubling the slash", () => {
   assert.equal(utils.urlFor("https://example.com/", "/pricing/"), "https://example.com/pricing/");
   assert.equal(utils.urlFor("https://example.com", "pricing/"), "https://example.com/pricing/");
   assert.equal(utils.urlFor("https://example.com", "https://other.example/x"), "https://other.example/x");
+});
+
+// Defect D1: what an unconfigured command prints. The guard messages were always
+// good sentences; what made them read as "the tool is broken" was Node's default
+// handler wrapping them in a stack trace with ESM loader frames. The handler
+// that fixes it lives in `src/utils.ts`, which every command imports, so it
+// belongs in this file — it is part of the contract they all inherit.
+//
+// Each command runs in the sandbox rather than the repo, so a developer who does
+// have credentials in a real `.env` still gets the unconfigured path measured.
+const unconfigured = (script: string, args: string[], env: Record<string, string> = {}) =>
+  spawnSync(process.execPath, [resolve(originalCwd, "node_modules", "tsx", "dist", "cli.mjs"), resolve(originalCwd, "src", script), ...args], {
+    cwd: sandbox,
+    encoding: "utf8",
+    env: { ...process.env, GOOGLE_SEARCH_CONSOLE_ACCESS_TOKEN: "", GOOGLE_APPLICATION_CREDENTIALS: "", GOOGLE_GENERATIVE_AI_API_KEY: "", SEO_DEBUG: "", ...env },
+  });
+
+const readsAsConfiguration = (name: string, script: string, args: string[], sentence: RegExp) => {
+  check(`${name} names what to configure, in one line, not a stack`, () => {
+    const run = unconfigured(script, args);
+    assert.equal(run.status, 1, `expected exit 1, got ${run.status}`);
+    assert.match(run.stderr, sentence);
+    assert.equal(run.stderr.trim().split("\n").length, 1, `expected one line, got: ${JSON.stringify(run.stderr)}`);
+    assert.doesNotMatch(run.stderr, /node:internal|ModuleJob|at async/, "a Node stack frame reached the user");
+  });
+};
+
+readsAsConfiguration("search-console", "search-console-report.ts", ["--site-url", "https://x/"], /Set GOOGLE_SEARCH_CONSOLE_ACCESS_TOKEN or GOOGLE_APPLICATION_CREDENTIALS\. Use --dry-run/);
+readsAsConfiguration("judge-video", "judge-video-gemini.ts", ["--input", "artifacts/nope.mp4"], /^Video not found: artifacts\/nope\.mp4/);
+readsAsConfiguration("capture:cdp", "chrome-cdp-capture.ts", ["--cdp-url", "http://127.0.0.1:9", "--base-url", "http://127.0.0.1:4614"], /^No Chrome DevTools endpoint at http:\/\/127\.0\.0\.1:9\. Start Chrome with/);
+
+check("judge-video --dry-run needs neither a key nor a real video", () => {
+  const run = unconfigured("judge-video-gemini.ts", ["--input", "artifacts/nope.mp4", "--dry-run", "--out-dir", join(sandbox, "judge")]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /wrote .*\.json and .*\.md/);
+});
+
+check("SEO_DEBUG restores the stack the friendly message replaced", () => {
+  // Without this, a real bug would be indistinguishable from a missing key.
+  const run = unconfigured("judge-video-gemini.ts", ["--input", "artifacts/nope.mp4"], { SEO_DEBUG: "1" });
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /Video not found: artifacts\/nope\.mp4/);
+  assert.match(run.stderr, /judge-video-gemini\.ts/);
 });
 
 let failed = 0;
