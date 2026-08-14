@@ -61,6 +61,7 @@ or proves a committed claim, and each has an npm script so it is discoverable.
 | `verify-journey-problem-gate.mjs` | `verify:journey-gate` | That the browser journey's quality gate can actually fail. Writes `promotion/evidence/journey-problem-gate.md` |
 | `verify-cli-contract.ts` | `verify:cli` | The flag/config/env/path contract in `src/utils.ts`, and that an unconfigured command prints one sentence rather than a stack |
 | `verify-citations.mjs` | `verify:citations` | That every documented citation — tour step or `path:line` in markdown — matches the code on the cited line, and that only `promotion/PRODUCT_GOAL.md` states the scorecard |
+| `verify-web-quality.mjs` | `verify:web-quality` | That the demo site holds up as a rendered page — layout at 375 and 1280, keyboard reachability, Lighthouse (mobile + desktop) and axe-core. Writes `promotion/evidence/web-quality-audit.md`, the raw reports under `promotion/evidence/{lighthouse,axe}/`, and three captures |
 
 ## `examples/site/` — the demo surface
 

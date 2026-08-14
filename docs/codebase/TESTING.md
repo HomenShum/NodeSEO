@@ -2,7 +2,7 @@
 
 ## What exists
 
-Four commands. Three of them need no keys and no network.
+Five commands. Three of them need no keys and no network.
 
 | Command | Time | Needs | What it proves |
 |---|---|---|---|
@@ -10,13 +10,15 @@ Four commands. Three of them need no keys and no network.
 | `npm run verify:cli` | ~6s | nothing | The flag, config, `.env` and path rules in `src/utils.ts` that all seven commands inherit, and what an unconfigured command prints — 25 assertions |
 | `npm run verify:citations` | <1s | nothing | Every citation in the docs and the tours points at the code it names, and the promotion scorecard is stated in one place — 89 claims |
 | `npm run verify:journey-gate` | ~30s | chromium | **That the browser journey's quality gate can actually fail** — 7 checks across 4 real Chromium runs |
+| `npm run verify:web-quality` | ~6min | chromium + npm registry | That the demo site holds up as a rendered page: no horizontal overflow and no 980px viewport fallback at 375 or 1280, every link a tab stop with a focus ring, and clean Lighthouse and axe-core runs — 67 checks across 3 routes, 2 viewports, 6 Lighthouse runs and 3 axe runs |
 
 Plus `npm run journey`, which is the thing `verify:journey-gate` runs; you rarely
 invoke it directly except against your own site.
 
-Run all four before opening a pull request. CI runs the first three
-(`.github/workflows/ci.yml`); the fourth is excluded because it needs a ~150MB
-browser download — see [`CONCERNS.md`](CONCERNS.md).
+Run all five before opening a pull request. CI runs the first three
+(`.github/workflows/ci.yml`); the last two are excluded because they need a
+~150MB browser download, and `verify:web-quality` additionally downloads
+`lighthouse` and `@axe-core/cli` through `npx` — see [`CONCERNS.md`](CONCERNS.md).
 
 ## There is no unit-test suite, and that is a deliberate trade
 

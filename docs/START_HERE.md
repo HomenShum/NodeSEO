@@ -53,7 +53,7 @@ waste your first day:
 ## Step 1 — The entry point is an npm script, not a route
 
 **File:** `package.json`
-**Symbol:** `scripts.validate` — `package.json:22` (`"validate":`)
+**Symbol:** `scripts.validate` — `package.json:23` (`"validate":`)
 **Called by:** a human typing `npm run validate`
 **Calls next:** `scripts.typecheck`, then `scripts.audit` → `src/audit-static.ts`
 

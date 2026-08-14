@@ -103,6 +103,9 @@ reproduction; a hunch is not a defect.
 | D2 | minor | J1 | The README quickstart puts `npx playwright install chromium` in the install block, ahead of the advertised zero-key command — but `npm run validate` does not need chromium at all. Observed: `npm run validate` exited 0 with `pass=23 warn=0 fail=0` in this clone, and it is `tsc --noEmit` plus a static file scan; only `journey` and `perf` launch a browser. The ordering makes the ten-minute first run look like it starts with a ~150MB browser download that the headline command never uses. (Not observed: what `journey`/`perf` print when chromium is genuinely absent — chromium was installed before either ran.) | open |
 | D3 | minor | J2 | `npm run audit --site-root <path outside the repo>` prints the resolved root as a relative path escaping the repo — observed literally as `siteRoot=../../badsite` in stdout and in the receipt header, instead of the absolute path the user passed. Cosmetic, but the receipt is the deliverable, and a receipt that names a path the reader cannot resolve weakens the one artifact the product exists to produce. Reproduce: `npm run audit -- --config config/seo-workflow.config.example.json --site-root /some/dir/outside/repo`. | open |
 | D4 | minor | J3 | With no environment set, `npm run journey` runs against the `playwright.config.ts` default `baseURL` of `https://example.com` and reports success. Observed from this clone: bare `npm run journey`, no env, exit 0, `1 passed` in 4.3s — a green journey that says nothing about the user's own site, and nothing in the output names the URL that was actually visited. Reproduce: clean clone, `npm run journey`. | open |
+| D5 | minor | J3 | Link hit boxes on the demo site are **17 CSS pixels tall** — `91x17` on `/`, `189x17` on `/pricing/` and `/faq/`, measured at both 375 and 1280 in `promotion/evidence/web-quality-audit.md`. Below the 24px minimum in WCAG 2.2 SC 2.5.8, though **not a violation**: each page has exactly one target and nothing else lies within a 24px circle centred on it, so the spacing exception applies. Small to hit on a phone regardless. Left open on purpose — the fix is CSS, and the fixture carries zero stylesheets (`styleSheets: 0` on all six route/viewport combinations) so the static auditor grades markup and not a theme. Reproduce: `npm run verify:web-quality`, DOM measurements table, "link hit boxes" column. | open |
+| D6 | minor | J3 | The demo site declares **no `color-scheme` and no `theme-color`** on any route (`colorScheme: none`, `themeColor: none` in the same table). The pages are light-only: a reader in a dark environment gets a full-white page and browser chrome that does not match it. Same reason for leaving it as D5 — declaring a colour scheme is a styling decision this fixture deliberately does not make. Web Interface Guidelines, *Design → Set the appropriate `color-scheme`* and *Browser UI matches your background*; finding F5 in `promotion/evidence/web-interface-guidelines-review.md`. | open |
+| D7 | minor | J3 | **The site's only call-to-action produces no visible change.** Clicking "Create a room" navigates `/` → `/?create=1` and the rendered body text is byte-identical before and after; the sole difference in the document is `<meta name="robots">` flipping `index,follow` → `noindex,nofollow`. Measured in the "Following the call-to-action" section of `promotion/evidence/web-quality-audit.md`; capture at `promotion/evidence/example-site-create-state.png`. On a product this would be major. Here the link exists to demonstrate the private-route noindex guard that `src/audit-static.ts` checks statically — which this now confirms fires in a real browser — so it is recorded as minor, and recorded rather than waived, because "the fixture means to do that" is a judgement a later reader should be free to disagree with. | open |
 
 ## Correction — 2026-08-13
 
@@ -358,3 +361,97 @@ ledger above.
 
 **Not fixed this iteration, still open:** D2, D3, D4 — all minor, see the ledger
 above. Row 4 still has no committed overflow probe.
+
+### Iteration 4 — 2026-08-14
+
+- **Journey exercised:** J3 — "Prove in a real browser that the landing page
+  actually works", extended past the landing page to every route the demo
+  surface serves (`/`, `/pricing/`, `/faq/`) at two widths, plus the
+  `/?create=1` state.
+- **Observed:** five rows (3, 4, 6, 7, 8) had been UNVERIFIED since the baseline
+  for one reason — **nothing in the repo pointed an instrument at the rendered
+  surface.** Row 4 had been measured once by a scratchpad file that was never
+  committed. Rows 6, 7 and 8 had never been measured at all. Pointing three
+  instruments at it found two major defects that every existing check was blind
+  to:
+  - **F1, major.** `examples/site/public/pricing/index.html` and
+    `.../faq/index.html` had **no `<meta name="viewport">`**. On a 375px device
+    they were laid out at **980px** and scaled down —
+    `document.documentElement.clientWidth === 980`, `scrollWidth === 981` — and
+    Lighthouse scored `viewport-insight` **0.5** on both. Neither the static
+    auditor (which does not check viewport metadata) nor the journey spec
+    (which drives one route at one width) could see it.
+  - **F2, major.** Both pages contained **zero links**
+    (`document.querySelectorAll("a[href]").length === 0`, both widths). Both are
+    listed in `sitemap.xml`, so they are search entry points, and a visitor who
+    landed on one had no route back and nothing focusable to Tab to.
+  - **F3, minor.** Chrome's automatic `/favicon.ico` request 404'd on every
+    route, failing Lighthouse `errors-in-console` and holding best-practices at
+    0.96. Worth its own line because **the repo's own row-9 producer does not
+    see it**: `verify:journey-gate`'s chromium never requests a favicon, so it
+    reported 0 console errors on the same page where Lighthouse's chromium
+    reported one. One browser, one answer.
+  Before-state receipt: `promotion/evidence/web-quality-audit-before-fix.md`,
+  **57 of 67 checks pass — 10 FAIL**: four layout checks (`/pricing/` and
+  `/faq/`, both mobile checks each) and the six Lighthouse "no failing audit"
+  runs. Produced by the committed script below against the pristine fixture. Regenerate it with
+  `git stash push -- examples/site && WEB_QUALITY_RECEIPT=web-quality-audit-before-fix.md npm run verify:web-quality`,
+  then `git stash pop` — which is how the failing-before state was confirmed
+  rather than assumed.
+- **Fixed:** three files under `examples/site/`, one line each, no CSS added and
+  no stylesheet introduced — the fixture stays unstyled on purpose so the static
+  auditor grades markup rather than a theme.
+  - `<meta name="viewport" content="width=device-width, initial-scale=1" />` on
+    `/pricing/` and `/faq/`, matching what `/` already declared.
+  - One in-content `<a href="/">` on each of those two pages.
+  - `<link rel="icon" href="data:," />` on all three.
+- **And a defect in the check written to catch the first one.** The overflow
+  assertion started as `scrollWidth <= document.documentElement.clientWidth`.
+  That is **true of the 980px canvas a viewport-less page lays itself out on**,
+  so it went green on both broken pages — a check that could not fail, the same
+  class of defect as iterations 1 and 2, found the same way: by running it
+  against the broken tree instead of reading it. The committed version compares
+  against the **device** width. Its first run is the one that reported
+  `/pricing/ @ mobile-375 … scrollWidth=981 deviceWidth=375`.
+- **Re-proved:** `promotion/evidence/web-quality-audit.md` — **67 of 67** checks
+  pass on the fixed tree. Lighthouse 13.4.1 across 6 runs (3 routes × mobile and
+  desktop presets): every category **1.00**, **zero failing audits of any
+  weight**, LCP 626–647ms mobile / 169–175ms desktop, CLS 0.000, one network
+  request per page. axe-core 4.13.0 across 3 runs: **0 violations**, 17 rules
+  passing per route, nothing incomplete. Raw JSON committed under
+  `promotion/evidence/lighthouse/` (6 files) and `promotion/evidence/axe/`
+  (3 files). Producer: `npm run verify:web-quality` →
+  `scripts/verify-web-quality.mjs`, committed, no keys, no deployment, no
+  third-party site — it serves `examples/site` itself on `127.0.0.1:4914`
+  (`WEB_QUALITY_PORT` overrides) and pins both tool versions, because an audit
+  whose tool floats cannot be compared to the run it supersedes. It also
+  re-emits `example-site-mobile-375.png` and `example-site-desktop-1280.png`,
+  which the baseline had committed as output with no producer.
+- **Row 7 is a review, and it is filed as one:**
+  `promotion/evidence/web-interface-guidelines-review.md` walks the Vercel Web
+  Interface Guidelines (fetched 2026-08-14 from https://vercel.com/design/guidelines,
+  reachable) section by section against the rendered pages. Every "not
+  applicable" cites an element census from the receipt — 0 form controls, 0
+  images, 0 ARIA attributes, no scrolling at either width — so a skipped section
+  is a measured skip rather than one the reviewer did not notice. **A Lighthouse
+  score was not laundered into it**, and this surface is the counter-example
+  that shows why it could not be: `/pricing/` scored accessibility 1.00,
+  performance 1.00 and SEO 1.00 on mobile in the very run where it was laid out
+  980px wide inside a 375px phone. Three minors are left open and logged as
+  D5–D7 rather than argued away.
+- **Tests:** `npm run validate` exit 0, `pass=23 warn=0 fail=0` (the fixture
+  edits change no audit finding). `npm run verify:cli` 25/25.
+  `npm run verify:journey-gate` 7/7, four real chromium runs — unchanged by this
+  iteration, which is the point: the browser gate still fails on the three broken
+  fixtures after the fixture the healthy run uses was edited.
+  `npm run verify:citations` **failed first**, 87/89: adding the new npm script
+  pushed the `"validate":` line in `package.json` down by one, and the two
+  citations aimed at its old line number — one tour step, one `docs/START_HERE.md`
+  symbol reference — went stale. Both repointed, then 89/89. The guard catching
+  a real break is the only evidence that it works.
+- **Conditions newly PASS:** 3, 4, 6, 7, 8.
+
+**Not fixed this iteration, still open:** D2, D3, D4 (minor, from earlier waves)
+and D5, D6, D7 (minor, new this wave). Row 1 stays UNVERIFIED and no script will
+move it: J5 needs a Search Console token and a Gemini key, which this programme
+does not create.

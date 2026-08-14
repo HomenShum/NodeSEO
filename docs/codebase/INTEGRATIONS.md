@@ -137,6 +137,7 @@ with your real shell environment winning over both.
 | `GOOGLE_SEARCH_CONSOLE_SITE_URL`, `GOOGLE_SEARCH_CONSOLE_ACCESS_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS` | `search-console` |
 | `CHROME_CDP_URL` | `capture:cdp` |
 | `JOURNEY_GATE_PORT` | `verify:journey-gate` — override when 4313 is taken |
+| `WEB_QUALITY_PORT`, `WEB_QUALITY_RECEIPT` | `verify:web-quality` — override port 4914, and the receipt filename (used to write the before-fix twin without clobbering the current one) |
 | `SEO_DEBUG` | every command — any value restores the full stack trace on failure |
 
 `.env` and `.env.local` are gitignored. Never commit a service-account JSON.

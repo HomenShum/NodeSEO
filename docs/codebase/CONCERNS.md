@@ -78,7 +78,10 @@ deletion.
 `.github/workflows/ci.yml` runs `validate`, `verify:cli` and `verify:citations` —
 all keyless and fast. It does **not** run `verify:journey-gate`, which is the
 check that proves the browser journey can fail, because that needs a chromium
-download on every CI run.
+download on every CI run. `verify:web-quality` is excluded for the same reason
+plus one more: it shells out to `npx lighthouse` and `npx @axe-core/cli`, so it
+needs the npm registry mid-run as well as a browser, and it takes about six
+minutes.
 
 The consequence is real: a regression that re-breaks the journey gate would be
 caught only by a person running it locally. Adding

@@ -6,6 +6,11 @@
     <title>ExampleRoom - collaborative AI workflow rooms</title>
     <meta name="description" content="ExampleRoom helps teams review source-backed work in collaborative AI rooms." />
     <meta name="robots" content="index,follow" />
+    <!-- Chrome requests /favicon.ico whether or not you declare one; with no
+         icon on the site that 404 lands in the console and Lighthouse scores it
+         as errors-in-console. An empty data: URI is the declaration that there
+         is nothing to fetch. -->
+    <link rel="icon" href="data:," />
     <link rel="canonical" href="https://example.com/" />
     <meta property="og:title" content="ExampleRoom - collaborative AI workflow rooms" />
     <meta property="og:description" content="Review source-backed work in collaborative AI rooms." />

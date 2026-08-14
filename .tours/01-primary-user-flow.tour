@@ -5,7 +5,7 @@
   "steps": [
     {
       "file": "package.json",
-      "line": 22,
+      "line": 23,
       "pattern": "\"validate\":",
       "description": "**Start here.** Someone has shipped a website and cannot tell whether search engines can read it. This is the one command they run first: `npm run validate`. It does two things — typecheck the tool, then audit the bundled demo site in `examples/site` and write a report. Nothing here needs an account, a key, or an internet connection."
     },

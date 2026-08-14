@@ -18,6 +18,7 @@
     "verify:cli": "tsx scripts/verify-cli-contract.ts",
     "verify:journey-gate": "node scripts/verify-journey-problem-gate.mjs",
     "verify:citations": "node scripts/verify-citations.mjs",
+    "verify:web-quality": "node scripts/verify-web-quality.mjs",
     "typecheck": "tsc --noEmit",
     "validate": "npm run typecheck && npm run audit -- --config config/seo-workflow.config.example.json --site-root examples/site"
   },
