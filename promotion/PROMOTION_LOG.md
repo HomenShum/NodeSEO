@@ -455,3 +455,84 @@ above. Row 4 still has no committed overflow probe.
 and D5, D6, D7 (minor, new this wave). Row 1 stays UNVERIFIED and no script will
 move it: J5 needs a Search Console token and a Gemini key, which this programme
 does not create.
+
+## Documentation correction 2026-10-15: report write contract
+
+A developer or coding agent consuming the two audit files needs to know whether
+both belong to a completed run. Step 6 of [START_HERE](../docs/START_HERE.md) said
+that a partial report was impossible because writing happened last. That
+inference was wrong: the static audit calls
+`src/audit-static.ts:50` (`writeJson(jsonOut, report);`), then
+`src/audit-static.ts:51` (`writeText(mdOut, renderMarkdown(report));`). The helpers
+at `src/utils.ts:107` (`export function writeJson`) and
+`src/utils.ts:112` (`export function writeText`) each write directly to their own
+destination; there is no transaction or rollback.
+
+- **Changed:** Step 6 now describes independent outputs and tells readers to
+  check the exit status and both files. Step 3's unconditional “always completes”
+  promise is narrowed to the actual missing-route branch. The guide links here.
+- **Unchanged:** all runtime code, dependencies, lockfile, tests and report-write
+  behavior. This is a documentation correction, not a repair of direct writes or
+  a new promotion iteration. It changes no historical condition or grade.
+- **Named proof:** `sequential-report-writes-can-leave-one-output`. An external
+  observer reads hash-bound source, extracts only the two writer function bodies,
+  and invokes them with explicit Node filesystem/path bindings. It does not
+  import the application or load its environment files. A fresh owned directory
+  is used each time; the second intended output path is deliberately a directory.
+
+| Document input | Observer exit | Filesystem observation |
+|---|---:|---|
+| Before: original Step 6 | 0 | JSON remains valid after Markdown raises `EISDIR`; no intended Markdown file is created |
+| After-final: corrected Step 6 | 0 | The same counterexample remains; the guide now describes independent writes |
+| Old-document control: preserved original bytes | 0 | The original impossible-partial promise is still contradicted by the same observation |
+
+Observer exit 0 means the counterexample was captured, **not** that a native
+NodeSEO audit succeeded or that the document passed a semantic test. The first
+`after` document is also retained: source inspection caught new citation anchors
+split from their expected text, so those line wraps were corrected and a separate
+`after-final` replay was captured. No failed citation-guard run is being claimed.
+
+### Retained external evidence
+
+The observer and capture are outside the product checkout, under
+`D:/ProjectRecovery/portfolio-presentation-extended-20261015/nodeseo-report-write-contract-20261015`.
+They are retained evidence producers, not a new test framework shipped in this
+repository. The exact measured child command, working directory and literal
+allowlisted environment passed to the child are recorded below; the child's
+environment was not independently measured. The after-final command/cwd/env
+match before exactly. The control differs only by an explicit final argument
+pointing to the preserved original `before-source/docs/START_HERE.md`.
+
+```json
+{
+  "command": [
+    "C:/nvm4w/nodejs/node.exe",
+    "D:\\ProjectRecovery\\portfolio-presentation-extended-20261015\\nodeseo-report-write-contract-20261015\\observe-write-boundary.mjs",
+    "D:\\ProjectRecovery\\portfolio-presentation-extended-20261015\\nodeseo-report-write-contract-20261015\\checkout",
+    "D:\\ProjectRecovery\\portfolio-presentation-extended-20261015\\nodeseo-report-write-contract-20261015\\filesystem-fixtures"
+  ],
+  "cwd": "D:\\ProjectRecovery\\portfolio-presentation-extended-20261015\\nodeseo-report-write-contract-20261015\\checkout",
+  "environmentLiteralPassed": {
+    "SystemRoot": "C:\\Windows",
+    "WINDIR": "C:\\Windows",
+    "TEMP": "D:\\ProjectRecovery\\portfolio-presentation-extended-20261015\\nodeseo-report-write-contract-20261015\\mechanical-tmp",
+    "TMP": "D:\\ProjectRecovery\\portfolio-presentation-extended-20261015\\nodeseo-report-write-contract-20261015\\mechanical-tmp"
+  }
+}
+```
+
+| Evidence | SHA256 |
+|---|---|
+| Frozen observer | `71b1c19a41dbaa2438449143deec3630e1855d78f449c6a07cc73309c18b6fe5` |
+| Frozen capture | `36963375157fd69c1010b7b5fa73e64a3418fc6bc54a1c57bc6d461324cbe0fd` |
+| Before stdout | `bb507b998673386f68e6c044c51f25ec779a3bedfa6cca2cbe9e54e3ec72a532` |
+| After-final stdout | `adf42e4884f87f380945ad9f43e498cd3c6661f02def50d5543ce12d669fa5c8` |
+| Old-document control stdout | `60a478f84e6abd87675c282660e44c2bba573f4b62aac70ef247dff8cf55272f` |
+
+The observed result is specific to the controlled directory fault. Missing or
+older Markdown is a source-supported possibility, not a separately executed
+older-file case. No whole-program audit, application exit-handler result,
+disk-full/truncation case, concurrency, other operating system, provider,
+browser, ranking, current CI or production readiness is certified here. The
+fixture payload is not an SEO finding. Raw CRLF checkout bytes and canonical LF
+Git blobs are bound separately in the external packet.

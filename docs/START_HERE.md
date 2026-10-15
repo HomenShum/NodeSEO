@@ -140,8 +140,9 @@ your config is silently ignored; see
 
 **Input** — the resolved settings from Step 2.
 **Output** — an `AuditReport` held in memory.
-**Failure behavior** — a missing route file becomes a `fail` finding, not an
-exception. The audit always completes and always produces a report.
+**Failure behavior** — a missing route file becomes a `fail` finding rather than
+an exception, so that condition does not itself stop report construction.
+Filesystem errors can still stop the command; see Step 6.
 **Next** — there is no agent in this flow; Step 4 explains where the only model
 call lives.
 
@@ -243,8 +244,17 @@ Both writers create their parent directory, so a fresh clone with no
 are gitignored except the committed example under `docs/reports/examples/`.
 `audit`, `perf` and `search-console` overwrite a fixed pair of paths each run;
 `judge-video` writes a timestamped run id so judgements accumulate.
-**Failure behavior** — a filesystem error propagates and the command dies. Since
-the write is the last step, a partial report is not possible.
+**Failure behavior** — a filesystem error stops the command. The static audit
+writes JSON first and Markdown second —
+`src/audit-static.ts:50` (`writeJson(jsonOut, report);`), then
+`src/audit-static.ts:51` (`writeText(mdOut, renderMarkdown(report));`). Each helper
+writes its own
+destination directly, with no transaction or rollback. If the Markdown write
+fails, the new JSON may remain while Markdown is missing or still from an
+earlier run. An existing output alone does not prove this run completed: check
+the exit status and both outputs.
+
+**Change record** — [report write contract correction](../promotion/PROMOTION_LOG.md#documentation-correction-2026-10-15-report-write-contract).
 **Next** — Step 7, what the user sees on screen.
 
 ---
